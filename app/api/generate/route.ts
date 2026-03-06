@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+function getScriptTiming(duration: number) {
+  if (duration <= 5) {
+    return { hook: '0–1s', buildup: '1–3s', reveal: '3–4s', cta: '4–5s' }
+  } else if (duration <= 8) {
+    return { hook: '0–2s', buildup: '2–5s', reveal: '5–7s', cta: '7–8s' }
+  } else if (duration <= 10) {
+    return { hook: '0–2s', buildup: '2–6s', reveal: '6–9s', cta: '9–10s' }
+  } else {
+    return { hook: '0–3s', buildup: '3–15s', reveal: '15–25s', cta: '25–30s' }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta } = await req.json()
+    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration } = await req.json()
 
     const STYLE_MAP: Record<string, string> = {
       luxury: 'luxury, aspirational, elegant, cinematic',
@@ -10,6 +22,11 @@ export async function POST(req: NextRequest) {
       romantic: 'romantic, sensual, poetic, slow-burn',
       storytelling: 'narrative-driven, personal, emotional story',
       educational: 'educational, informative about fragrance notes and ingredients',
+      minimalist: 'clean, minimal, modern, white-space aesthetic — less is more',
+      asmr: 'ASMR close-up, satisfying textures, soft whispered narration, highly sensory',
+      humor: 'humorous, relatable, self-deprecating comedy, light-hearted tone',
+      bold: 'bold, hype, high-energy, statement-making, street-culture aesthetic',
+      comparison: 'comparison-style "smells like..." or "dupe of..." framing, value-driven',
     }
 
     const AUD_MAP: Record<string, string> = {
@@ -18,6 +35,11 @@ export async function POST(req: NextRequest) {
       millennials: 'millennials (26–40 year olds)',
       luxury: 'luxury shoppers who appreciate premium products',
       gifters: 'people looking to buy a gift',
+      men: 'men who wear fragrances (35–55 year olds)',
+      collectors: 'niche fragrance collectors and enthusiasts',
+      budget: 'budget-conscious shoppers looking for the best value',
+      wellness: 'wellness and clean beauty enthusiasts',
+      professional: 'office professionals looking for a daily signature scent',
     }
 
     const CTA_MAP: Record<string, string> = {
@@ -27,6 +49,9 @@ export async function POST(req: NextRequest) {
       save: 'Save for Later',
       none: 'none',
     }
+
+    const dur = parseInt(videoDuration) || 10
+    const timing = getScriptTiming(dur)
 
     const prompt = `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
 
@@ -38,6 +63,7 @@ Context:
 - Content style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}
 - Target audience: ${AUD_MAP[audience] || AUD_MAP.general}
 - Call to action: ${CTA_MAP[cta] || CTA_MAP.shop}
+- Video duration: ${dur <= 10 ? dur + ' seconds' : '30 seconds (3-clip format)'}
 
 Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with this exact structure:
 {
@@ -46,10 +72,10 @@ Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with 
   "vibeAnalysis": "2-sentence description of the perfume visual vibe and likely scent profile",
   "hook": "one powerful opening line (first 3 seconds) to stop the scroll",
   "script": {
-    "hook": "0–3 sec hook text (spoken/on-screen)",
-    "buildup": "3–15 sec buildup narration",
-    "reveal": "15–25 sec product reveal description with what to show",
-    "cta": "25–30 sec CTA text"
+    "hook": "${timing.hook} hook text (spoken/on-screen) — keep it very short and punchy",
+    "buildup": "${timing.buildup} buildup narration — build desire and atmosphere",
+    "reveal": "${timing.reveal} product reveal — describe what to show on screen",
+    "cta": "${timing.cta} CTA text — strong close"
   },
   "caption": "full TikTok caption (2–4 sentences, engaging, matches the style)",
   "hashtags": ["15", "relevant", "hashtags", "without", "the", "hash", "symbol"],

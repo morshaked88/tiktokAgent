@@ -23,14 +23,24 @@ const CONTENT_STYLES = [
   { value: 'romantic',     label: '🌹 Romantic & Sensual' },
   { value: 'storytelling', label: '📖 Story-Driven' },
   { value: 'educational',  label: '🧪 Educational' },
+  { value: 'minimalist',   label: '🤍 Minimalist & Modern' },
+  { value: 'asmr',         label: '🎙 ASMR Close-Up' },
+  { value: 'humor',        label: '😂 Humorous & Relatable' },
+  { value: 'bold',         label: '⚡ Bold & Hype' },
+  { value: 'comparison',   label: '⚖️ Comparison / Dupe' },
 ]
 
 const AUDIENCES = [
-  { value: 'general',    label: 'General Fragrance Lovers' },
-  { value: 'genz',       label: 'Gen Z (18–25)' },
-  { value: 'millennials',label: 'Millennials (26–40)' },
-  { value: 'luxury',     label: 'Luxury Shoppers' },
-  { value: 'gifters',    label: 'Gift Buyers' },
+  { value: 'general',      label: 'General Fragrance Lovers' },
+  { value: 'genz',         label: 'Gen Z (18–25)' },
+  { value: 'millennials',  label: 'Millennials (26–40)' },
+  { value: 'luxury',       label: 'Luxury Shoppers' },
+  { value: 'gifters',      label: 'Gift Buyers' },
+  { value: 'men',          label: "Men's Fragrance (35–55)" },
+  { value: 'collectors',   label: 'Niche Collectors' },
+  { value: 'budget',       label: 'Budget-Conscious Shoppers' },
+  { value: 'wellness',     label: 'Wellness & Clean Beauty' },
+  { value: 'professional', label: 'Office / Daily Wearers' },
 ]
 
 const CTAS = [
@@ -47,6 +57,96 @@ const VIDEO_STYLES = [
   { value: 'dreamy',    label: '🌹 Dreamy Romantic' },
   { value: 'trendy',    label: '⚡ Trendy & Bold' },
 ]
+
+const BACKGROUNDS = [
+  { value: 'original',        label: '📸 Original Photo' },
+  { value: 'bokeh',           label: '🌟 Bokeh Blur' },
+  { value: 'gradient-gold',   label: '✨ Gold Luxury' },
+  { value: 'gradient-purple', label: '💜 Purple Dream' },
+  { value: 'gradient-pink',   label: '🌸 Rose Pink' },
+  { value: 'gradient-dark',   label: '🖤 Dark & Moody' },
+  { value: 'gradient-teal',   label: '🌊 Deep Teal' },
+  { value: 'studio-white',    label: '⬜ Studio White' },
+]
+
+const DURATION_OPTIONS = [
+  { value: '5',  label: '5s — Quick Preview' },
+  { value: '8',  label: '8s — Short Reel' },
+  { value: '10', label: '10s — Standard' },
+  { value: '30', label: '30s — 3-Clip Story (3 × 10s)' },
+]
+
+const DURATION_OPTIONS_AUDIO = [
+  { value: '4', label: '4s' },
+  { value: '6', label: '6s' },
+  { value: '8', label: '8s — Recommended' },
+]
+
+/* ── Script timing labels (mirrors generate/route.ts logic) ─ */
+function getTimingLabels(duration: number) {
+  if (duration <= 5)  return { hook: '0–1s', buildup: '1–3s', reveal: '3–4s', cta: '4–5s' }
+  if (duration <= 8)  return { hook: '0–2s', buildup: '2–5s', reveal: '5–7s', cta: '7–8s' }
+  if (duration <= 10) return { hook: '0–2s', buildup: '2–6s', reveal: '6–9s', cta: '9–10s' }
+  return { hook: '0–3s', buildup: '3–15s', reveal: '15–25s', cta: '25–30s' }
+}
+
+/* ── Background compositing ──────────────────────────────── */
+async function compositeBackground(imageDataUrl: string, bg: string): Promise<string> {
+  if (bg === 'original') return imageDataUrl
+
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 720
+      canvas.height = 1280
+      const ctx = canvas.getContext('2d')!
+
+      if (bg === 'bokeh') {
+        // Blurred full-bleed background
+        const bgScale = Math.max(720 / img.width, 1280 / img.height)
+        ctx.filter = 'blur(28px)'
+        ctx.drawImage(
+          img,
+          (720 - img.width * bgScale) / 2,
+          (1280 - img.height * bgScale) / 2,
+          img.width * bgScale,
+          img.height * bgScale,
+        )
+        ctx.filter = 'none'
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'
+        ctx.fillRect(0, 0, 720, 1280)
+      } else {
+        const gradients: Record<string, [string, string, string]> = {
+          'gradient-gold':   ['#0d0800', '#3d2b00', '#1a1400'],
+          'gradient-purple': ['#0d0014', '#2d0047', '#0d001a'],
+          'gradient-pink':   ['#1a0010', '#4d0028', '#1a000d'],
+          'gradient-dark':   ['#000000', '#111111', '#000000'],
+          'gradient-teal':   ['#00141a', '#003d4d', '#001a1f'],
+          'studio-white':    ['#f5f5f5', '#ffffff', '#eeeeee'],
+        }
+        const [c1, c2, c3] = gradients[bg] || gradients['gradient-gold']
+        const grad = ctx.createLinearGradient(0, 0, 0, 1280)
+        grad.addColorStop(0, c1)
+        grad.addColorStop(0.5, c2)
+        grad.addColorStop(1, c3)
+        ctx.fillStyle = grad
+        ctx.fillRect(0, 0, 720, 1280)
+      }
+
+      // Draw product image centered at 72% of canvas area
+      const maxW = 720 * 0.72
+      const maxH = 1280 * 0.72
+      const scale = Math.min(maxW / img.width, maxH / img.height)
+      const w = img.width * scale
+      const h = img.height * scale
+      ctx.drawImage(img, (720 - w) / 2, (1280 - h) / 2, w, h)
+
+      resolve(canvas.toDataURL('image/jpeg', 0.92))
+    }
+    img.src = imageDataUrl
+  })
+}
 
 /* ── Small UI helpers ────────────────────────────────────── */
 function OptionCard({ label, children }: { label: string; children: React.ReactNode }) {
@@ -114,6 +214,25 @@ function ContentCard({
   )
 }
 
+/* ── Clip card for multi-clip mode ───────────────────────── */
+function ClipCard({ label, url }: { label: string; url: string | null }) {
+  return (
+    <div className={styles.clipCard}>
+      <div className={styles.clipLabel}>{label}</div>
+      {url ? (
+        <>
+          <video src={url} controls playsInline className={styles.videoEl} />
+          <a href={url} download={`${label.toLowerCase().replace(/\s+/g, '-')}.mp4`} className={styles.dlBtn}>
+            ⬇ Download
+          </a>
+        </>
+      ) : (
+        <div className={styles.clipPending}>Generating…</div>
+      )}
+    </div>
+  )
+}
+
 /* ── Main page ───────────────────────────────────────────── */
 export default function Home() {
   // Image
@@ -129,21 +248,34 @@ export default function Home() {
   const [contentStyle, setContentStyle] = useState('luxury')
   const [audience, setAudience] = useState('general')
   const [cta, setCta] = useState('shop')
+  const [videoDuration, setVideoDuration] = useState('10')
+  const [withAudio, setWithAudio] = useState(false)
 
   // Content generation
   const [genStep, setGenStep] = useState<'idle'|'loading'|'done'>('idle')
   const [genError, setGenError] = useState('')
   const [content, setContent] = useState<ContentResult | null>(null)
 
-  // Video
-  const [videoDuration, setVideoDuration] = useState('10')
+  // Video options (after content is generated)
   const [videoStyle, setVideoStyle] = useState('cinematic')
+  const [background, setBackground] = useState('original')
+  const [extraInstructions, setExtraInstructions] = useState('')
+
+  // Single-clip video state
   const [videoStep, setVideoStep] = useState<'idle'|'submitting'|'done'|'error'>('idle')
   const [videoProgress, setVideoProgress] = useState(5)
   const [videoStatusText, setVideoStatusText] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [videoError, setVideoError] = useState('')
   const pollRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Multi-clip video state (3 × 10s)
+  const [clipUrls, setClipUrls] = useState<(string | null)[]>([null, null, null])
+  const [clipErrors, setClipErrors] = useState<(string | null)[]>([null, null, null])
+
+  const isMultiClip = videoDuration === '30'
+  const dur = parseInt(videoDuration) || 10
+  const timing = getTimingLabels(dur)
 
   /* ── Image ── */
   const processFile = (file: File) => {
@@ -175,7 +307,7 @@ export default function Home() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta }),
+        body: JSON.stringify({ imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration }),
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Generation failed')
@@ -188,15 +320,13 @@ export default function Home() {
     }
   }
 
-  /* ── Step 2: Generate video via Runway SDK (server handles polling) ── */
-  const generateVideo = async () => {
-    if (!imageDataUrl || !content) return
+  /* ── Step 2a: Single clip ── */
+  const generateSingleVideo = async (composited: string) => {
     setVideoStep('submitting')
     setVideoError('')
     setVideoProgress(10)
     setVideoStatusText('Sending to Runway ML...')
 
-    // Animate progress while server is processing (SDK polls internally)
     pollRef.current = setInterval(() => {
       setVideoProgress(p => Math.min(p + 2, 90))
       setVideoStatusText('Generating your video — this takes 1–3 minutes ☕')
@@ -207,16 +337,17 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl,
-          videoPrompt: content.videoPrompt,
+          imageDataUrl: composited,
+          videoPrompt: content!.videoPrompt,
           duration: videoDuration,
           visualStyle: videoStyle,
+          withAudio,
+          extraInstructions,
         }),
       })
       const data = await res.json()
       clearInterval(pollRef.current!)
       if (!res.ok || data.error) throw new Error(data.error || 'Runway generation failed')
-
       setVideoProgress(100)
       setVideoUrl(data.videoUrl)
       setVideoStep('done')
@@ -228,17 +359,86 @@ export default function Home() {
     }
   }
 
+  /* ── Step 2b: Multi-clip (3 parallel requests) ── */
+  const generateMultiClips = async (composited: string) => {
+    const segments = [
+      { clipIndex: 0, label: 'Clip 1 — Hook', focusText: content!.script.hook },
+      { clipIndex: 1, label: 'Clip 2 — Build-Up', focusText: content!.script.buildup },
+      { clipIndex: 2, label: 'Clip 3 — Reveal & CTA', focusText: content!.script.reveal + ' ' + content!.script.cta },
+    ]
+
+    setVideoStep('submitting')
+    setClipUrls([null, null, null])
+    setClipErrors([null, null, null])
+    setVideoProgress(10)
+    setVideoStatusText('Generating 3 clips in parallel — takes 2–5 minutes ☕')
+
+    pollRef.current = setInterval(() => {
+      setVideoProgress(p => Math.min(p + 1, 90))
+    }, 5000)
+
+    const promises = segments.map(({ clipIndex, focusText }) =>
+      fetch('/api/runway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageDataUrl: composited,
+          videoPrompt: content!.videoPrompt,
+          duration: '10',
+          visualStyle: videoStyle,
+          withAudio: false,
+          clipIndex,
+          focusText,
+          extraInstructions,
+        }),
+      }).then(async r => {
+        const d = await r.json()
+        if (!r.ok || d.error) throw new Error(d.error || 'Runway failed')
+        return { clipIndex, videoUrl: d.videoUrl as string }
+      }).catch((e: Error) => ({ clipIndex, error: e.message }))
+    )
+
+    const results = await Promise.all(promises)
+    clearInterval(pollRef.current!)
+    setVideoProgress(100)
+
+    const urls: (string | null)[] = [null, null, null]
+    const errs: (string | null)[] = [null, null, null]
+    for (const r of results) {
+      if ('videoUrl' in r) urls[r.clipIndex] = r.videoUrl
+      else if ('error' in r) errs[r.clipIndex] = r.error
+    }
+    setClipUrls(urls)
+    setClipErrors(errs)
+    setVideoStep('done')
+  }
+
+  /* ── Step 2 entry ── */
+  const generateVideo = async () => {
+    if (!imageDataUrl || !content) return
+    const composited = await compositeBackground(imageDataUrl, background)
+    if (isMultiClip) {
+      generateMultiClips(composited)
+    } else {
+      generateSingleVideo(composited)
+    }
+  }
+
   const resetAll = () => {
     if (pollRef.current) clearInterval(pollRef.current)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
     setContent(null); setGenStep('idle'); setGenError('')
     setBrandName(''); setPerfumeName('')
     setVideoStep('idle'); setVideoUrl(''); setVideoError(''); setVideoProgress(5)
+    setClipUrls([null, null, null]); setClipErrors([null, null, null])
+    setExtraInstructions('')
   }
 
   const scriptCopy = content
-    ? `HOOK (0-3s): ${content.script.hook}\n\nBUILD-UP (3-15s): ${content.script.buildup}\n\nREVEAL (15-25s): ${content.script.reveal}\n\nCTA (25-30s): ${content.script.cta}`
+    ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
     : ''
+
+  const durationOpts = withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
 
   return (
     <main className={styles.main}>
@@ -315,7 +515,35 @@ export default function Home() {
               <OptionCard label="Call to Action">
                 <StyledSelect value={cta} onChange={setCta} options={CTAS} />
               </OptionCard>
+              <OptionCard label="Video Duration">
+                <StyledSelect value={videoDuration} onChange={v => {
+                  setVideoDuration(v)
+                  // audio not available for 30s multi-clip
+                  if (v === '30') setWithAudio(false)
+                }} options={durationOpts} />
+              </OptionCard>
             </div>
+
+            {/* Audio toggle */}
+            {videoDuration !== '30' && (
+              <div className={styles.audioToggleRow}>
+                <label className={styles.audioToggle}>
+                  <input
+                    type="checkbox"
+                    checked={withAudio}
+                    onChange={e => {
+                      setWithAudio(e.target.checked)
+                      if (e.target.checked && !['4','6','8'].includes(videoDuration)) {
+                        setVideoDuration('8')
+                      }
+                    }}
+                  />
+                  <span className={styles.audioToggleLabel}>
+                    🔊 Generate with AI audio (uses Veo 3.1 Fast — 4/6/8s only)
+                  </span>
+                </label>
+              </div>
+            )}
 
             {genError && <div className={styles.errorMsg}>⚠ {genError}</div>}
 
@@ -367,10 +595,10 @@ export default function Home() {
             <ContentCard icon="🎬" iconBg="linear-gradient(135deg,rgba(255,45,85,0.2),rgba(105,201,208,0.2))"
               title="Video Script" copyText={scriptCopy}>
               {([
-                ['🎬 Hook (0–3s)', content.script.hook],
-                ['📈 Build-Up (3–15s)', content.script.buildup],
-                ['✨ Reveal (15–25s)', content.script.reveal],
-                ['📣 CTA (25–30s)', content.script.cta],
+                [`🎬 Hook (${timing.hook})`, content.script.hook],
+                [`📈 Build-Up (${timing.buildup})`, content.script.buildup],
+                [`✨ Reveal (${timing.reveal})`, content.script.reveal],
+                [`📣 CTA (${timing.cta})`, content.script.cta],
               ] as [string, string][]).map(([label, text]) => (
                 <div key={label} className={styles.scriptSection}>
                   <div className={styles.scriptLabel}>{label}</div>
@@ -412,18 +640,36 @@ export default function Home() {
               <div className={styles.dividerLine} />
             </div>
 
-            {/* Controls */}
+            {/* Video controls */}
             {(videoStep === 'idle' || videoStep === 'error') && (
               <>
                 <div className={styles.optionsGrid}>
-                  <OptionCard label="Video Duration">
-                    <StyledSelect value={videoDuration} onChange={setVideoDuration}
-                      options={[{ value: '5', label: '5 seconds' }, { value: '10', label: '10 seconds' }]} />
-                  </OptionCard>
                   <OptionCard label="Visual Style">
                     <StyledSelect value={videoStyle} onChange={setVideoStyle} options={VIDEO_STYLES} />
                   </OptionCard>
+                  <OptionCard label="Background">
+                    <StyledSelect value={background} onChange={setBackground} options={BACKGROUNDS} />
+                  </OptionCard>
                 </div>
+
+                {/* Extra instructions */}
+                <div className={styles.extraInstructionsWrap}>
+                  <div className={styles.optionLabel}>Additional Video Instructions <span className={styles.optionalTag}>(optional)</span></div>
+                  <textarea
+                    className={styles.textarea}
+                    value={extraInstructions}
+                    onChange={e => setExtraInstructions(e.target.value)}
+                    placeholder="e.g. Add slow-motion water droplets falling on the bottle, golden particles floating, close-up on the cap..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className={styles.videoMeta}>
+                  <span>Duration: <strong>{isMultiClip ? '3 × 10s clips' : videoDuration + 's'}</strong></span>
+                  {withAudio && <span className={styles.audioBadge}>🔊 AI Audio</span>}
+                  {isMultiClip && <span className={styles.multiClipNote}>3 parallel generations • stitch in TikTok editor</span>}
+                </div>
+
                 {videoStep === 'error' && <div className={styles.errorMsg}>⚠ {videoError} — please try again.</div>}
                 <button className={styles.generateVideoBtn} onClick={generateVideo}>
                   🎬 Generate TikTok Video with Runway
@@ -435,17 +681,21 @@ export default function Home() {
             {videoStep === 'submitting' && (
               <div className={styles.videoStatusCard}>
                 <div className={`${styles.videoRing} spin`} />
-                <p className={styles.videoStatusTitle}>Generating your video...</p>
+                <p className={styles.videoStatusTitle}>
+                  {isMultiClip ? 'Generating 3 clips in parallel...' : 'Generating your video...'}
+                </p>
                 <p className={styles.videoStatusSub}>{videoStatusText}</p>
                 <div className={styles.progressBar}>
                   <div className={styles.progressFill} style={{ width: `${videoProgress}%` }} />
                 </div>
-                <p className={styles.progressLabel}>This takes 1–3 minutes ☕</p>
+                <p className={styles.progressLabel}>
+                  {isMultiClip ? 'Each clip takes 1–3 minutes ☕' : 'This takes 1–3 minutes ☕'}
+                </p>
               </div>
             )}
 
-            {/* Done */}
-            {videoStep === 'done' && videoUrl && (
+            {/* Single clip done */}
+            {videoStep === 'done' && !isMultiClip && videoUrl && (
               <div className={styles.videoResultCard}>
                 <video src={videoUrl} controls playsInline className={styles.videoEl} />
                 <div className={styles.videoActions}>
@@ -454,6 +704,21 @@ export default function Home() {
                   </a>
                   <button className={styles.regenBtn} onClick={() => setVideoStep('idle')}>↩ Regenerate</button>
                 </div>
+              </div>
+            )}
+
+            {/* Multi-clip done */}
+            {videoStep === 'done' && isMultiClip && (
+              <div className={styles.multiClipGrid}>
+                {(['Hook', 'Build-Up', 'Reveal & CTA'] as const).map((label, i) => (
+                  <div key={i}>
+                    <ClipCard label={`Clip ${i + 1} — ${label}`} url={clipUrls[i]} />
+                    {clipErrors[i] && <div className={styles.errorMsg}>⚠ {clipErrors[i]}</div>}
+                  </div>
+                ))}
+                <button className={styles.regenBtn} onClick={() => { setVideoStep('idle'); setClipUrls([null,null,null]) }}>
+                  ↩ Regenerate All
+                </button>
               </div>
             )}
           </div>

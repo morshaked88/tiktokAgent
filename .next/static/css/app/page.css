@@ -687,3 +687,140 @@
   }
 }
 
+/* ── Audio toggle ── */
+.page_audioToggleRow__wHPNt {
+  margin-bottom: 18px;
+}
+
+.page_audioToggle__Cum7i {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.page_audioToggle__Cum7i input[type="checkbox"] {
+  accent-color: var(--gold);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.page_audioToggleLabel__3_dMH {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ── Extra instructions textarea ── */
+.page_extraInstructionsWrap__yT4Ly {
+  margin-bottom: 18px;
+}
+
+.page_textarea__aR4ZX {
+  width: 100%;
+  background: var(--dark3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 12px 14px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.page_textarea__aR4ZX:focus {
+  border-color: rgba(201,168,76,0.4);
+}
+
+.page_textarea__aR4ZX::placeholder {
+  color: var(--text-muted);
+}
+
+.page_optionalTag__IJJpa {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* ── Video meta row ── */
+.page_videoMeta__4Bfme {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.page_audioBadge__SYjmO {
+  background: rgba(105,201,208,0.1);
+  border: 1px solid rgba(105,201,208,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: #69c9d0;
+  font-size: 11px;
+}
+
+.page_multiClipNote__dSPOf {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* ── Multi-clip grid ── */
+.page_multiClipGrid__gZ8NR {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page_clipCard__yTDJM {
+  background: var(--surface);
+  border: 1px solid rgba(105,201,208,0.15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.page_clipLabel__Re4eh {
+  padding: 12px 18px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.page_clipPending__goOO1 {
+  padding: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.page_clipCard__yTDJM .page_dlBtn__02GfB {
+  margin: 14px 18px;
+  display: inline-block;
+  flex: unset;
+  width: auto;
+}
+
+/* ── Responsive additions ── */
+@media (max-width: 600px) {
+  .page_videoMeta__4Bfme {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+

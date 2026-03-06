@@ -682,3 +682,140 @@
     gap: 12px;
   }
 }
+
+/* ── Audio toggle ── */
+.audioToggleRow {
+  margin-bottom: 18px;
+}
+
+.audioToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.audioToggle input[type="checkbox"] {
+  accent-color: var(--gold);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.audioToggleLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ── Extra instructions textarea ── */
+.extraInstructionsWrap {
+  margin-bottom: 18px;
+}
+
+.textarea {
+  width: 100%;
+  background: var(--dark3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 12px 14px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.textarea:focus {
+  border-color: rgba(201,168,76,0.4);
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.optionalTag {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+/* ── Video meta row ── */
+.videoMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.audioBadge {
+  background: rgba(105,201,208,0.1);
+  border: 1px solid rgba(105,201,208,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: #69c9d0;
+  font-size: 11px;
+}
+
+.multiClipNote {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* ── Multi-clip grid ── */
+.multiClipGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.clipCard {
+  background: var(--surface);
+  border: 1px solid rgba(105,201,208,0.15);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.clipLabel {
+  padding: 12px 18px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.clipPending {
+  padding: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.clipCard .dlBtn {
+  margin: 14px 18px;
+  display: inline-block;
+  flex: unset;
+  width: auto;
+}
+
+/* ── Responsive additions ── */
+@media (max-width: 600px) {
+  .videoMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
