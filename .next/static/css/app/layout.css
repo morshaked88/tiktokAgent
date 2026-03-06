@@ -1,0 +1,80 @@
+/*!*************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[3]!./app/globals.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************/
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --gold: #c9a84c;
+  --gold-light: #e8d49a;
+  --dark: #0d0b0e;
+  --dark2: #181520;
+  --dark3: #221e2d;
+  --surface: #1e1a28;
+  --surface2: #2a253a;
+  --text: #f0ead6;
+  --text-muted: #9990b8;
+  --tiktok: #ff2d55;
+  --tiktok2: #69c9d0;
+  --accent: #b388ff;
+}
+
+html, body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Montserrat', 'Segoe UI', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(201,168,76,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 90%, rgba(179,136,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(105,201,208,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+       appearance: none;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: 'Montserrat', 'Segoe UI', sans-serif;
+}
+
+a { color: var(--gold); }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--dark2); }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 3px; }
+
