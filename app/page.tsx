@@ -73,7 +73,6 @@ const DURATION_OPTIONS = [
   { value: '5',  label: '5s — Quick Preview' },
   { value: '8',  label: '8s — Short Reel' },
   { value: '10', label: '10s — Standard' },
-  { value: '30', label: '30s — 3-Clip Story (3 × 10s)' },
 ]
 
 const DURATION_OPTIONS_AUDIO = [
