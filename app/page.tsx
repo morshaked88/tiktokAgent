@@ -81,6 +81,12 @@ const DURATION_OPTIONS_AUDIO = [
   { value: '8', label: '8s — Recommended' },
 ]
 
+const VEO_RESOLUTIONS = [
+  { value: '720p',  label: '720p — Standard (fastest)' },
+  { value: '1080p', label: '1080p — HD' },
+  { value: '4k',    label: '4K — Ultra HD (slowest)' },
+]
+
 /* ── Script timing labels (mirrors generate/route.ts logic) ─ */
 function getTimingLabels(duration: number) {
   if (duration <= 5)  return { hook: '0–1s', buildup: '1–3s', reveal: '3–4s', cta: '4–5s' }
@@ -255,6 +261,10 @@ export default function Home() {
   const [genError, setGenError] = useState('')
   const [content, setContent] = useState<ContentResult | null>(null)
 
+  // Platform
+  const [videoPlatform, setVideoPlatform] = useState<'runway' | 'veo'>('runway')
+  const [veoResolution, setVeoResolution] = useState('720p')
+
   // Video options (after content is generated)
   const [videoStyle, setVideoStyle] = useState('cinematic')
   const [background, setBackground] = useState('original')
@@ -319,7 +329,49 @@ export default function Home() {
     }
   }
 
-  /* ── Step 2a: Single clip ── */
+  /* ── Step 2a: Veo 3.1 ── */
+  const generateVeoVideo = async (composited: string) => {
+    setVideoStep('submitting')
+    setVideoError('')
+    setVideoProgress(10)
+    setVideoStatusText('Sending to Google Veo 3.1...')
+
+    pollRef.current = setInterval(() => {
+      setVideoProgress(p => Math.min(p + 1, 90))
+      setVideoStatusText('Veo 3.1 is crafting your 8s video with AI audio — ~2–4 min ☕')
+    }, 8000)
+
+    try {
+      const res = await fetch('/api/gemini-veo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64,          // raw base64 (no data URI prefix)
+          imageMediaType,
+          videoPrompt: content!.videoPrompt,
+          visualStyle: videoStyle,
+          resolution: veoResolution,
+          extraInstructions,
+        }),
+      })
+      const data = await res.json()
+      clearInterval(pollRef.current!)
+      if (!res.ok || data.error) throw new Error(data.error || 'Veo generation failed')
+
+      // Proxy the Gemini Files API URI through our server so the API key stays secret
+      const proxyUrl = `/api/gemini-veo/proxy?uri=${encodeURIComponent(data.fileUri)}`
+      setVideoProgress(100)
+      setVideoUrl(proxyUrl)
+      setVideoStep('done')
+    } catch (e: unknown) {
+      clearInterval(pollRef.current!)
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      setVideoError(message)
+      setVideoStep('error')
+    }
+  }
+
+  /* ── Step 2b: Single Runway clip ── */
   const generateSingleVideo = async (composited: string) => {
     setVideoStep('submitting')
     setVideoError('')
@@ -416,7 +468,9 @@ export default function Home() {
   const generateVideo = async () => {
     if (!imageDataUrl || !content) return
     const composited = await compositeBackground(imageDataUrl, background)
-    if (isMultiClip) {
+    if (videoPlatform === 'veo') {
+      generateVeoVideo(composited)
+    } else if (isMultiClip) {
       generateMultiClips(composited)
     } else {
       generateSingleVideo(composited)
@@ -431,6 +485,7 @@ export default function Home() {
     setVideoStep('idle'); setVideoUrl(''); setVideoError(''); setVideoProgress(5)
     setClipUrls([null, null, null]); setClipErrors([null, null, null])
     setExtraInstructions('')
+    setVeoResolution('720p')
   }
 
   const scriptCopy = content
@@ -450,7 +505,7 @@ export default function Home() {
           <p className={styles.subtitle}>TikTok Content Studio for Perfume Brands</p>
           <div className={styles.badgeRow}>
             <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Powered by Claude AI</span>
-            <span className={`${styles.badge} ${styles.badgeRunway}`}>🎬 + Runway ML Video</span>
+            <span className={`${styles.badge} ${styles.badgeRunway}`}>🎬 Runway ML + Google Veo 3.1</span>
           </div>
         </header>
 
@@ -514,17 +569,40 @@ export default function Home() {
               <OptionCard label="Call to Action">
                 <StyledSelect value={cta} onChange={setCta} options={CTAS} />
               </OptionCard>
-              <OptionCard label="Video Duration">
-                <StyledSelect value={videoDuration} onChange={v => {
-                  setVideoDuration(v)
-                  // audio not available for 30s multi-clip
-                  if (v === '30') setWithAudio(false)
-                }} options={durationOpts} />
-              </OptionCard>
+              {videoPlatform === 'runway' && (
+                <OptionCard label="Video Duration">
+                  <StyledSelect value={videoDuration} onChange={v => {
+                    setVideoDuration(v)
+                    if (v === '30') setWithAudio(false)
+                  }} options={durationOpts} />
+                </OptionCard>
+              )}
             </div>
 
-            {/* Audio toggle */}
-            {videoDuration !== '30' && (
+            {/* Platform selector */}
+            <div className={styles.platformRow}>
+              <div className={styles.optionLabel}>Video Platform</div>
+              <div className={styles.platformToggle}>
+                <button
+                  className={`${styles.platformBtn} ${videoPlatform === 'runway' ? styles.platformBtnActive : ''}`}
+                  onClick={() => { setVideoPlatform('runway'); setWithAudio(false) }}
+                >
+                  🎬 Runway ML
+                </button>
+                <button
+                  className={`${styles.platformBtn} ${videoPlatform === 'veo' ? styles.platformBtnActiveVeo : ''}`}
+                  onClick={() => { setVideoPlatform('veo'); setVideoDuration('8') }}
+                >
+                  ✦ Google Veo 3.1
+                </button>
+              </div>
+              {videoPlatform === 'veo' && (
+                <p className={styles.platformNote}>8s portrait video • native AI audio • up to 4K</p>
+              )}
+            </div>
+
+            {/* Audio toggle — Runway only */}
+            {videoPlatform === 'runway' && videoDuration !== '30' && (
               <div className={styles.audioToggleRow}>
                 <label className={styles.audioToggle}>
                   <input
@@ -538,7 +616,7 @@ export default function Home() {
                     }}
                   />
                   <span className={styles.audioToggleLabel}>
-                    🔊 Generate with AI audio (uses Veo 3.1 Fast — 4/6/8s only)
+                    🔊 Generate with AI audio (uses Veo 3.1 Fast model — 4/6/8s only)
                   </span>
                 </label>
               </div>
@@ -635,7 +713,9 @@ export default function Home() {
             {/* ── Video section ── */}
             <div className={styles.videoDivider}>
               <div className={styles.dividerLine} />
-              <span className={styles.dividerLabel}>🎬 AI Video via Runway ML</span>
+              <span className={styles.dividerLabel}>
+                {videoPlatform === 'veo' ? '✦ AI Video via Google Veo 3.1' : '🎬 AI Video via Runway ML'}
+              </span>
               <div className={styles.dividerLine} />
             </div>
 
@@ -649,6 +729,11 @@ export default function Home() {
                   <OptionCard label="Background">
                     <StyledSelect value={background} onChange={setBackground} options={BACKGROUNDS} />
                   </OptionCard>
+                  {videoPlatform === 'veo' && (
+                    <OptionCard label="Resolution">
+                      <StyledSelect value={veoResolution} onChange={setVeoResolution} options={VEO_RESOLUTIONS} />
+                    </OptionCard>
+                  )}
                 </div>
 
                 {/* Extra instructions */}
@@ -664,14 +749,24 @@ export default function Home() {
                 </div>
 
                 <div className={styles.videoMeta}>
-                  <span>Duration: <strong>{isMultiClip ? '3 × 10s clips' : videoDuration + 's'}</strong></span>
-                  {withAudio && <span className={styles.audioBadge}>🔊 AI Audio</span>}
-                  {isMultiClip && <span className={styles.multiClipNote}>3 parallel generations • stitch in TikTok editor</span>}
+                  {videoPlatform === 'veo' ? (
+                    <>
+                      <span>Duration: <strong>8s</strong></span>
+                      <span className={styles.audioBadge}>🔊 Native AI Audio</span>
+                      <span>Resolution: <strong>{veoResolution}</strong></span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Duration: <strong>{isMultiClip ? '3 × 10s clips' : videoDuration + 's'}</strong></span>
+                      {withAudio && <span className={styles.audioBadge}>🔊 AI Audio</span>}
+                      {isMultiClip && <span className={styles.multiClipNote}>3 parallel generations • stitch in TikTok editor</span>}
+                    </>
+                  )}
                 </div>
 
                 {videoStep === 'error' && <div className={styles.errorMsg}>⚠ {videoError} — please try again.</div>}
-                <button className={styles.generateVideoBtn} onClick={generateVideo}>
-                  🎬 Generate TikTok Video with Runway
+                <button className={videoPlatform === 'veo' ? styles.generateVeoBtn : styles.generateVideoBtn} onClick={generateVideo}>
+                  {videoPlatform === 'veo' ? '✦ Generate Video with Google Veo 3.1' : '🎬 Generate TikTok Video with Runway'}
                 </button>
               </>
             )}

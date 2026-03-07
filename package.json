@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/genai": "^1.44.0",
     "@runwayml/sdk": "latest",
     "next": "^14.2.35",
     "react": "^18",

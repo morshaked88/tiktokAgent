@@ -819,3 +819,79 @@
     gap: 6px;
   }
 }
+
+/* ── Platform selector ── */
+.platformRow {
+  margin-bottom: 18px;
+}
+
+.platformToggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.platformBtn {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--dark3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.platformBtn:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: var(--text);
+}
+
+.platformBtnActive {
+  background: rgba(255,45,85,0.12);
+  border-color: rgba(255,45,85,0.4);
+  color: #ff2d55;
+}
+
+.platformBtnActiveVeo {
+  background: rgba(66,133,244,0.12);
+  border-color: rgba(66,133,244,0.4);
+  color: #4285f4;
+}
+
+.platformNote {
+  font-size: 11px;
+  color: #4285f4;
+  letter-spacing: 0.5px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* ── Veo generate button ── */
+.generateVeoBtn {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.generateVeoBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(66,133,244,0.35);
+}
