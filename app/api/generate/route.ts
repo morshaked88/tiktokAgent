@@ -14,7 +14,7 @@ function getScriptTiming(duration: number) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration } = await req.json()
+    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails } = await req.json()
 
     const STYLE_MAP: Record<string, string> = {
       luxury: 'luxury, aspirational, elegant, cinematic',
@@ -63,7 +63,9 @@ Context:
 - Content style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}
 - Target audience: ${AUD_MAP[audience] || AUD_MAP.general}
 - Call to action: ${CTA_MAP[cta] || CTA_MAP.shop}
-- Video duration: ${dur <= 10 ? dur + ' seconds' : '30 seconds (3-clip format)'}
+- Video duration: ${dur <= 10 ? dur + ' seconds' : '30 seconds (3-clip format)'}${videoDetails ? `\n- Additional details from creator: ${videoDetails}` : ''}
+
+IMPORTANT: The "script" and "narrationScript" fields must contain plain text only — absolutely no emojis.
 
 Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with this exact structure:
 {
@@ -72,11 +74,18 @@ Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with 
   "vibeAnalysis": "2-sentence description of the perfume visual vibe and likely scent profile",
   "hook": "one powerful opening line (first 3 seconds) to stop the scroll",
   "script": {
-    "hook": "${timing.hook} hook text (spoken/on-screen) — keep it very short and punchy",
-    "buildup": "${timing.buildup} buildup narration — build desire and atmosphere",
-    "reveal": "${timing.reveal} product reveal — describe what to show on screen",
-    "cta": "${timing.cta} CTA text — strong close"
-  },
+    "hook": "${timing.hook} hook text (spoken/on-screen) — keep it very short and punchy. No emojis.",
+    "buildup": "${timing.buildup} buildup narration — build desire and atmosphere. No emojis.",
+    "reveal": "${timing.reveal} product reveal — describe what to show on screen. No emojis.",
+    "cta": "${timing.cta} CTA text — strong close. No emojis."
+  },${withNarration ? `
+  "narrationScript": {
+    "hook": "exact words to speak aloud for the hook (${timing.hook}). No emojis.",
+    "buildup": "exact spoken narration for buildup (${timing.buildup}). No emojis.",
+    "reveal": "exact spoken words for the reveal (${timing.reveal}). No emojis.",
+    "cta": "exact spoken call-to-action (${timing.cta}). No emojis."
+  },` : ''}${withMusic ? `
+  "musicSuggestion": "specific background music recommendation: genre, mood, tempo (BPM), energy level, and 1–2 example artist/track styles that would match this video perfectly",` : ''}
   "caption": "full TikTok caption (2–4 sentences, engaging, matches the style)",
   "hashtags": ["15", "relevant", "hashtags", "without", "the", "hash", "symbol"],
   "tips": ["specific filming tip 1", "specific filming tip 2", "specific filming tip 3"],

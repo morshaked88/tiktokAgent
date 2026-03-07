@@ -53,8 +53,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ fileUri: video.uri, mimeType: video.mimeType || 'video/mp4' })
 
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
+    let message = e instanceof Error ? e.message : 'Unknown error'
+    let status = 500
+
+    // Parse Gemini API error JSON embedded in the thrown error message
+    try {
+      const parsed = JSON.parse(message)
+      const apiErr = parsed?.error
+      if (apiErr) {
+        if (apiErr.code === 429) {
+          message = 'Gemini Veo quota exceeded — please check your Google AI billing or try again later.'
+          status = 429
+        } else {
+          message = apiErr.message ?? message
+        }
+      }
+    } catch { /* not JSON, use message as-is */ }
+
     console.error('Gemini Veo error:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -10,6 +10,8 @@ interface ContentResult {
   vibeAnalysis: string
   hook: string
   script: { hook: string; buildup: string; reveal: string; cta: string }
+  narrationScript?: { hook: string; buildup: string; reveal: string; cta: string }
+  musicSuggestion?: string
   caption: string
   hashtags: string[]
   tips: string[]
@@ -79,12 +81,6 @@ const DURATION_OPTIONS_AUDIO = [
   { value: '4', label: '4s' },
   { value: '6', label: '6s' },
   { value: '8', label: '8s — Recommended' },
-]
-
-const VEO_RESOLUTIONS = [
-  { value: '720p',  label: '720p — Standard (fastest)' },
-  { value: '1080p', label: '1080p — HD' },
-  { value: '4k',    label: '4K — Ultra HD (slowest)' },
 ]
 
 /* ── Script timing labels (mirrors generate/route.ts logic) ─ */
@@ -253,17 +249,17 @@ export default function Home() {
   const [contentStyle, setContentStyle] = useState('luxury')
   const [audience, setAudience] = useState('general')
   const [cta, setCta] = useState('shop')
+  const [videoPlatform, setVideoPlatform] = useState<'runway' | 'seedance'>('runway')
   const [videoDuration, setVideoDuration] = useState('10')
   const [withAudio, setWithAudio] = useState(false)
+  const [withMusic, setWithMusic] = useState(false)
+  const [withNarration, setWithNarration] = useState(false)
+  const [videoDetails, setVideoDetails] = useState('')
 
   // Content generation
   const [genStep, setGenStep] = useState<'idle'|'loading'|'done'>('idle')
   const [genError, setGenError] = useState('')
   const [content, setContent] = useState<ContentResult | null>(null)
-
-  // Platform
-  const [videoPlatform, setVideoPlatform] = useState<'runway' | 'veo'>('runway')
-  const [veoResolution, setVeoResolution] = useState('720p')
 
   // Video options (after content is generated)
   const [videoStyle, setVideoStyle] = useState('cinematic')
@@ -316,7 +312,7 @@ export default function Home() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration }),
+        body: JSON.stringify({ imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails }),
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Generation failed')
@@ -329,39 +325,35 @@ export default function Home() {
     }
   }
 
-  /* ── Step 2a: Veo 3.1 ── */
-  const generateVeoVideo = async (composited: string) => {
+  /* ── Step 2a: Seedance ── */
+  const generateSeedanceVideo = async (composited: string) => {
     setVideoStep('submitting')
     setVideoError('')
     setVideoProgress(10)
-    setVideoStatusText('Sending to Google Veo 3.1...')
+    setVideoStatusText('Sending to Seedance...')
 
     pollRef.current = setInterval(() => {
       setVideoProgress(p => Math.min(p + 1, 90))
-      setVideoStatusText('Veo 3.1 is crafting your 8s video with AI audio — ~2–4 min ☕')
-    }, 8000)
+      setVideoStatusText('Seedance is generating your video with AI audio — 2–5 min')
+    }, 6000)
 
     try {
-      const res = await fetch('/api/gemini-veo', {
+      const res = await fetch('/api/seedance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64,          // raw base64 (no data URI prefix)
-          imageMediaType,
-          videoPrompt: content!.videoPrompt,
+          imageDataUrl: composited,
+          videoPrompt: fullVideoPrompt,
+          duration: videoDuration,
           visualStyle: videoStyle,
-          resolution: veoResolution,
           extraInstructions,
         }),
       })
       const data = await res.json()
       clearInterval(pollRef.current!)
-      if (!res.ok || data.error) throw new Error(data.error || 'Veo generation failed')
-
-      // Proxy the Gemini Files API URI through our server so the API key stays secret
-      const proxyUrl = `/api/gemini-veo/proxy?uri=${encodeURIComponent(data.fileUri)}`
+      if (!res.ok || data.error) throw new Error(data.error || 'Seedance generation failed')
       setVideoProgress(100)
-      setVideoUrl(proxyUrl)
+      setVideoUrl(data.videoUrl)
       setVideoStep('done')
     } catch (e: unknown) {
       clearInterval(pollRef.current!)
@@ -389,7 +381,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageDataUrl: composited,
-          videoPrompt: content!.videoPrompt,
+          videoPrompt: fullVideoPrompt,
           duration: videoDuration,
           visualStyle: videoStyle,
           withAudio,
@@ -434,7 +426,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageDataUrl: composited,
-          videoPrompt: content!.videoPrompt,
+          videoPrompt: fullVideoPrompt,
           duration: '10',
           visualStyle: videoStyle,
           withAudio: false,
@@ -468,8 +460,8 @@ export default function Home() {
   const generateVideo = async () => {
     if (!imageDataUrl || !content) return
     const composited = await compositeBackground(imageDataUrl, background)
-    if (videoPlatform === 'veo') {
-      generateVeoVideo(composited)
+    if (videoPlatform === 'seedance') {
+      generateSeedanceVideo(composited)
     } else if (isMultiClip) {
       generateMultiClips(composited)
     } else {
@@ -485,12 +477,25 @@ export default function Home() {
     setVideoStep('idle'); setVideoUrl(''); setVideoError(''); setVideoProgress(5)
     setClipUrls([null, null, null]); setClipErrors([null, null, null])
     setExtraInstructions('')
-    setVeoResolution('720p')
+    setWithMusic(false); setWithNarration(false); setVideoDetails('')
+    setVideoPlatform('runway')
   }
 
   const scriptCopy = content
     ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
     : ''
+
+  // Compact structured prompt sent to video models
+  const fullVideoPrompt = content ? [
+    `Script: ${timing.hook}: ${content.script.hook}. ${timing.buildup}: ${content.script.buildup}. ${timing.reveal}: ${content.script.reveal}. ${timing.cta}: ${content.script.cta}.`,
+    content.narrationScript
+      ? `Narrator: "${content.narrationScript.hook} ${content.narrationScript.buildup} ${content.narrationScript.reveal} ${content.narrationScript.cta}"`
+      : null,
+    content.musicSuggestion
+      ? `Music: ${content.musicSuggestion.slice(0, 120)}`
+      : null,
+    content.videoPrompt.slice(0, 250),
+  ].filter(Boolean).join(' ').slice(0, 1000) : ''
 
   const durationOpts = withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
 
@@ -505,7 +510,7 @@ export default function Home() {
           <p className={styles.subtitle}>TikTok Content Studio for Perfume Brands</p>
           <div className={styles.badgeRow}>
             <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Powered by Claude AI</span>
-            <span className={`${styles.badge} ${styles.badgeRunway}`}>🎬 Runway ML + Google Veo 3.1</span>
+            <span className={`${styles.badge} ${styles.badgeRunway}`}>Runway ML + Seedance</span>
           </div>
         </header>
 
@@ -533,23 +538,46 @@ export default function Home() {
                   <span className={styles.uploadEmoji}>🌸</span>
                   <p className={styles.uploadTitle}>Drop your perfume photo here</p>
                   <p className={styles.uploadHint}>JPG, PNG, WEBP</p>
-                  <label
-                    htmlFor="fileInput"
+                  <button
+                    type="button"
                     className={styles.uploadBtn}
-                    onClick={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); fileRef.current?.click() }}
                   >
                     Choose Image
-                  </label>
+                  </button>
                 </>
               )}
               <input
-                id="fileInput"
                 ref={fileRef}
                 type="file"
                 accept="image/*"
                 style={{ display: 'none' }}
                 onChange={e => { if (e.target.files?.[0]) processFile(e.target.files[0]) }}
               />
+            </div>
+
+            {/* Platform selector */}
+            <div className={styles.platformRow}>
+              <div className={styles.optionLabel}>Video Platform</div>
+              <div className={styles.platformToggle}>
+                <button
+                  type="button"
+                  className={`${styles.platformBtn} ${videoPlatform === 'runway' ? styles.platformBtnActive : ''}`}
+                  onClick={() => { setVideoPlatform('runway') }}
+                >
+                  Runway ML
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.platformBtn} ${videoPlatform === 'seedance' ? styles.platformBtnActiveSeedance : ''}`}
+                  onClick={() => { setVideoPlatform('seedance'); setWithAudio(false) }}
+                >
+                  Seedance v1.5 Pro
+                </button>
+              </div>
+              {videoPlatform === 'seedance' && (
+                <p className={styles.platformNote}>10s portrait video with native AI audio</p>
+              )}
             </div>
 
             {/* Options */}
@@ -569,36 +597,36 @@ export default function Home() {
               <OptionCard label="Call to Action">
                 <StyledSelect value={cta} onChange={setCta} options={CTAS} />
               </OptionCard>
-              {videoPlatform === 'runway' && (
-                <OptionCard label="Video Duration">
-                  <StyledSelect value={videoDuration} onChange={v => {
-                    setVideoDuration(v)
-                    if (v === '30') setWithAudio(false)
-                  }} options={durationOpts} />
-                </OptionCard>
-              )}
+              <OptionCard label="Video Duration">
+                <StyledSelect value={videoDuration} onChange={v => {
+                  setVideoDuration(v)
+                  if (v === '30') setWithAudio(false)
+                }} options={durationOpts} />
+              </OptionCard>
             </div>
 
-            {/* Platform selector */}
-            <div className={styles.platformRow}>
-              <div className={styles.optionLabel}>Video Platform</div>
-              <div className={styles.platformToggle}>
-                <button
-                  className={`${styles.platformBtn} ${videoPlatform === 'runway' ? styles.platformBtnActive : ''}`}
-                  onClick={() => { setVideoPlatform('runway'); setWithAudio(false) }}
-                >
-                  🎬 Runway ML
-                </button>
-                <button
-                  className={`${styles.platformBtn} ${videoPlatform === 'veo' ? styles.platformBtnActiveVeo : ''}`}
-                  onClick={() => { setVideoPlatform('veo'); setVideoDuration('8') }}
-                >
-                  ✦ Google Veo 3.1
-                </button>
-              </div>
-              {videoPlatform === 'veo' && (
-                <p className={styles.platformNote}>8s portrait video • native AI audio • up to 4K</p>
-              )}
+            {/* Extra details */}
+            <div className={styles.extraInstructionsWrap}>
+              <div className={styles.optionLabel}>Video Details <span className={styles.optionalTag}>(optional)</span></div>
+              <textarea
+                className={styles.textarea}
+                value={videoDetails}
+                onChange={e => setVideoDetails(e.target.value)}
+                placeholder="e.g. It's a limited edition summer release, target brides, emphasise the floral top notes..."
+                rows={2}
+              />
+            </div>
+
+            {/* Feature toggles */}
+            <div className={styles.toggleGroup}>
+              <label className={styles.audioToggle}>
+                <input type="checkbox" checked={withNarration} onChange={e => setWithNarration(e.target.checked)} />
+                <span className={styles.audioToggleLabel}>🎙 Add video narration script</span>
+              </label>
+              <label className={styles.audioToggle}>
+                <input type="checkbox" checked={withMusic} onChange={e => setWithMusic(e.target.checked)} />
+                <span className={styles.audioToggleLabel}>🎵 Add background music suggestion</span>
+              </label>
             </div>
 
             {/* Audio toggle — Runway only */}
@@ -672,10 +700,10 @@ export default function Home() {
             <ContentCard icon="🎬" iconBg="linear-gradient(135deg,rgba(255,45,85,0.2),rgba(105,201,208,0.2))"
               title="Video Script" copyText={scriptCopy}>
               {([
-                [`🎬 Hook (${timing.hook})`, content.script.hook],
-                [`📈 Build-Up (${timing.buildup})`, content.script.buildup],
-                [`✨ Reveal (${timing.reveal})`, content.script.reveal],
-                [`📣 CTA (${timing.cta})`, content.script.cta],
+                [`Hook (${timing.hook})`, content.script.hook],
+                [`Build-Up (${timing.buildup})`, content.script.buildup],
+                [`Reveal (${timing.reveal})`, content.script.reveal],
+                [`CTA (${timing.cta})`, content.script.cta],
               ] as [string, string][]).map(([label, text]) => (
                 <div key={label} className={styles.scriptSection}>
                   <div className={styles.scriptLabel}>{label}</div>
@@ -683,6 +711,31 @@ export default function Home() {
                 </div>
               ))}
             </ContentCard>
+
+            {content.narrationScript && (
+              <ContentCard icon="🎙" iconBg="linear-gradient(135deg,rgba(105,201,208,0.2),rgba(179,136,255,0.2))"
+                title="Video Narration Script"
+                copyText={`HOOK: ${content.narrationScript.hook}\n\nBUILD-UP: ${content.narrationScript.buildup}\n\nREVEAL: ${content.narrationScript.reveal}\n\nCTA: ${content.narrationScript.cta}`}>
+                {([
+                  [`Hook (${timing.hook})`, content.narrationScript.hook],
+                  [`Build-Up (${timing.buildup})`, content.narrationScript.buildup],
+                  [`Reveal (${timing.reveal})`, content.narrationScript.reveal],
+                  [`CTA (${timing.cta})`, content.narrationScript.cta],
+                ] as [string, string][]).map(([label, text]) => (
+                  <div key={label} className={styles.scriptSection}>
+                    <div className={styles.scriptLabel}>{label}</div>
+                    <p className={styles.bodyText}>{text}</p>
+                  </div>
+                ))}
+              </ContentCard>
+            )}
+
+            {content.musicSuggestion && (
+              <ContentCard icon="🎵" iconBg="linear-gradient(135deg,rgba(201,168,76,0.2),rgba(255,45,85,0.1))"
+                title="Background Music Suggestion" copyText={content.musicSuggestion}>
+                <p className={styles.bodyText}>{content.musicSuggestion}</p>
+              </ContentCard>
+            )}
 
             <ContentCard icon="✍️" iconBg="linear-gradient(135deg,rgba(179,136,255,0.2),rgba(105,201,208,0.2))"
               title="TikTok Caption" copyText={content.caption}>
@@ -714,7 +767,7 @@ export default function Home() {
             <div className={styles.videoDivider}>
               <div className={styles.dividerLine} />
               <span className={styles.dividerLabel}>
-                {videoPlatform === 'veo' ? '✦ AI Video via Google Veo 3.1' : '🎬 AI Video via Runway ML'}
+                {videoPlatform === 'seedance' ? 'AI Video via Seedance v1.5 Pro' : 'AI Video via Runway ML'}
               </span>
               <div className={styles.dividerLine} />
             </div>
@@ -729,11 +782,6 @@ export default function Home() {
                   <OptionCard label="Background">
                     <StyledSelect value={background} onChange={setBackground} options={BACKGROUNDS} />
                   </OptionCard>
-                  {videoPlatform === 'veo' && (
-                    <OptionCard label="Resolution">
-                      <StyledSelect value={veoResolution} onChange={setVeoResolution} options={VEO_RESOLUTIONS} />
-                    </OptionCard>
-                  )}
                 </div>
 
                 {/* Extra instructions */}
@@ -749,24 +797,26 @@ export default function Home() {
                 </div>
 
                 <div className={styles.videoMeta}>
-                  {videoPlatform === 'veo' ? (
+                  {videoPlatform === 'seedance' ? (
                     <>
-                      <span>Duration: <strong>8s</strong></span>
-                      <span className={styles.audioBadge}>🔊 Native AI Audio</span>
-                      <span>Resolution: <strong>{veoResolution}</strong></span>
+                      <span>Duration: <strong>{videoDuration}s</strong></span>
+                      <span className={styles.audioBadge}>Native AI Audio</span>
                     </>
                   ) : (
                     <>
                       <span>Duration: <strong>{isMultiClip ? '3 × 10s clips' : videoDuration + 's'}</strong></span>
-                      {withAudio && <span className={styles.audioBadge}>🔊 AI Audio</span>}
+                      {withAudio && <span className={styles.audioBadge}>AI Audio</span>}
                       {isMultiClip && <span className={styles.multiClipNote}>3 parallel generations • stitch in TikTok editor</span>}
                     </>
                   )}
                 </div>
 
                 {videoStep === 'error' && <div className={styles.errorMsg}>⚠ {videoError} — please try again.</div>}
-                <button className={videoPlatform === 'veo' ? styles.generateVeoBtn : styles.generateVideoBtn} onClick={generateVideo}>
-                  {videoPlatform === 'veo' ? '✦ Generate Video with Google Veo 3.1' : '🎬 Generate TikTok Video with Runway'}
+                <button
+                  className={videoPlatform === 'seedance' ? styles.generateSeedanceBtn : styles.generateVideoBtn}
+                  onClick={generateVideo}
+                >
+                  {videoPlatform === 'seedance' ? 'Generate Video with Seedance' : 'Generate TikTok Video with Runway'}
                 </button>
               </>
             )}
