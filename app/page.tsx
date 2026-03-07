@@ -16,6 +16,7 @@ interface ContentResult {
   hashtags: string[]
   tips: string[]
   videoPrompt: string
+  videoScenes?: { hook: string; buildup: string; reveal: string; cta: string }
 }
 
 /* ── Constants ───────────────────────────────────────────── */
@@ -485,17 +486,13 @@ export default function Home() {
     ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
     : ''
 
-  // Compact structured prompt sent to video models
+  // Video prompt: cinematic visual description only (no script/narration text — triggers moderation)
   const fullVideoPrompt = content ? [
-    `Script: ${timing.hook}: ${content.script.hook}. ${timing.buildup}: ${content.script.buildup}. ${timing.reveal}: ${content.script.reveal}. ${timing.cta}: ${content.script.cta}.`,
-    content.narrationScript
-      ? `Narrator: "${content.narrationScript.hook} ${content.narrationScript.buildup} ${content.narrationScript.reveal} ${content.narrationScript.cta}"`
-      : null,
+    content.videoPrompt,
     content.musicSuggestion
-      ? `Music: ${content.musicSuggestion.slice(0, 120)}`
+      ? `Audio mood: ${content.musicSuggestion.split('.')[0].slice(0, 80)}`
       : null,
-    content.videoPrompt.slice(0, 250),
-  ].filter(Boolean).join(' ').slice(0, 1000) : ''
+  ].filter(Boolean).join('. ') : ''
 
   const durationOpts = withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
 
