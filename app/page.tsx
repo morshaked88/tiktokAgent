@@ -486,13 +486,24 @@ export default function Home() {
     ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
     : ''
 
-  // Video prompt: cinematic visual description only (no script/narration text — triggers moderation)
-  const fullVideoPrompt = content ? [
-    content.videoPrompt,
-    content.musicSuggestion
-      ? `Audio mood: ${content.musicSuggestion.split('.')[0].slice(0, 80)}`
-      : null,
-  ].filter(Boolean).join('. ') : ''
+  // Video prompt: cinematic desc + scene cues + narrator + audio, capped at 1500 chars
+  const fullVideoPrompt = content ? (() => {
+    const parts: string[] = []
+    parts.push(content.videoPrompt.slice(0, 400))
+    if (content.videoScenes) {
+      const s = content.videoScenes
+      parts.push(`${timing.hook}: ${s.hook}. ${timing.buildup}: ${s.buildup}. ${timing.reveal}: ${s.reveal}. ${timing.cta}: ${s.cta}`)
+    }
+    if (content.narrationScript) {
+      const n = content.narrationScript
+      const narText = `${n.hook} ${n.buildup} ${n.reveal} ${n.cta}`.slice(0, 350)
+      parts.push(`Narrator: "${narText}"`)
+    }
+    if (content.musicSuggestion) {
+      parts.push(`Audio: ${content.musicSuggestion.slice(0, 150)}`)
+    }
+    return parts.join('. ').slice(0, 1500)
+  })() : ''
 
   const durationOpts = withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
 
