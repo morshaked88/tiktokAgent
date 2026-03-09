@@ -288,10 +288,40 @@ export default function Home() {
     if (!file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.onload = e => {
-      const url = e.target?.result as string
-      setImageDataUrl(url)
-      setImageBase64(url.split(',')[1])
-      setImageMediaType(file.type)
+      const originalUrl = e.target?.result as string
+      const originalB64 = originalUrl.split(',')[1]
+      const MAX_B64 = 4_500_000 // stay under Claude's 5 MB limit
+
+      // If already small enough, use original without any quality loss
+      if (originalB64.length <= MAX_B64) {
+        setImageDataUrl(originalUrl)
+        setImageBase64(originalB64)
+        setImageMediaType(file.type)
+        return
+      }
+
+      // Only compress if needed — binary search for highest quality under limit
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const scale = Math.min(1, 3000 / Math.max(img.width, img.height))
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const tryQ = (q: number) => canvas.toDataURL('image/jpeg', q)
+
+        let lo = 0.4, hi = 0.95, best = tryQ(0.95)
+        for (let i = 0; i < 7; i++) {
+          const mid = (lo + hi) / 2
+          const attempt = tryQ(mid)
+          if (attempt.split(',')[1].length <= MAX_B64) { lo = mid; best = attempt }
+          else hi = mid
+        }
+        setImageDataUrl(best)
+        setImageBase64(best.split(',')[1])
+        setImageMediaType('image/jpeg')
+      }
+      img.src = originalUrl
     }
     reader.readAsDataURL(file)
   }
