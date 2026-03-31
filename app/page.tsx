@@ -522,23 +522,24 @@ export default function Home() {
     ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
     : ''
 
-  // Video prompt: cinematic desc + scene cues + narrator + audio, capped at 1500 chars
+  // Video prompt — hard cap 1200 chars, narration word-limited to fit duration
   const fullVideoPrompt = content ? (() => {
     const parts: string[] = []
-    parts.push(content.videoPrompt.slice(0, 400))
+    parts.push(content.videoPrompt.slice(0, 180))
     if (content.videoScenes) {
       const s = content.videoScenes
-      parts.push(`${timing.hook}: ${s.hook}. ${timing.buildup}: ${s.buildup}. ${timing.reveal}: ${s.reveal}. ${timing.cta}: ${s.cta}`)
+      parts.push(`${timing.hook}: ${s.hook.slice(0, 55)}. ${timing.buildup}: ${s.buildup.slice(0, 65)}. ${timing.reveal}: ${s.reveal.slice(0, 65)}. ${timing.cta}: ${s.cta.slice(0, 45)}`)
     }
     if (content.narrationScript) {
       const n = content.narrationScript
-      const narText = `${n.hook} ${n.buildup} ${n.reveal} ${n.cta}`.slice(0, 350)
-      parts.push(`Narrator: "${narText}"`)
+      const maxWords = Math.round(dur * 2.5)
+      const words = `${n.hook} ${n.buildup} ${n.reveal} ${n.cta}`.trim().split(/\s+/).slice(0, maxWords).join(' ')
+      parts.push(`Narrator: "${words}"`)
     }
     if (content.musicSuggestion) {
-      parts.push(`Audio: ${content.musicSuggestion.slice(0, 150)}`)
+      parts.push(`Audio: ${content.musicSuggestion.slice(0, 80)}`)
     }
-    return parts.join('. ').slice(0, 1500)
+    return parts.join('. ').slice(0, 1200)
   })() : ''
 
   const durationOpts = videoPlatform === 'seedance' ? DURATION_OPTIONS_VEO : withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS

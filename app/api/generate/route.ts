@@ -66,6 +66,7 @@ Context:
 - Video duration: ${dur <= 10 ? dur + ' seconds' : '30 seconds (3-clip format)'}${videoDetails ? `\n- Additional details from creator: ${videoDetails}` : ''}
 
 IMPORTANT: The "script" and "narrationScript" fields must contain plain text only — absolutely no emojis.
+IMPORTANT: The narrationScript total word count across all 4 segments combined must not exceed ${Math.round(dur * 2.5)} words (at 2.5 words/second for a ${dur}s video). Be concise — every word must earn its place.
 
 Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with this exact structure:
 {
@@ -89,12 +90,12 @@ Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with 
   "caption": "full TikTok caption (2–4 sentences, engaging, matches the style)",
   "hashtags": ["15", "relevant", "hashtags", "without", "the", "hash", "symbol"],
   "tips": ["specific filming tip 1", "specific filming tip 2", "specific filming tip 3"],
-  "videoPrompt": "a detailed Runway ML image-to-video prompt (max 400 chars) describing a cinematic product video of this perfume bottle. Describe camera motion, lighting, atmosphere. Style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}",
+  "videoPrompt": "cinematic image-to-video prompt, max 180 chars: camera motion + lighting + atmosphere only. Style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}",
   "videoScenes": {
-    "hook": "${timing.hook} — purely visual/cinematic description: what camera movement, lighting effect, or shot to open with. No spoken text. Max 80 chars.",
-    "buildup": "${timing.buildup} — purely visual: how the camera moves, what the light does, what surfaces or textures to show. No spoken text. Max 100 chars.",
-    "reveal": "${timing.reveal} — purely visual: the hero product shot, angle, light refraction, atmospheric detail. No spoken text. Max 100 chars.",
-    "cta": "${timing.cta} — purely visual: final frame composition, hold shot, fade or cut style. No spoken text. Max 60 chars."
+    "hook": "visual action for ${timing.hook}, max 55 chars, no spoken text",
+    "buildup": "visual action for ${timing.buildup}, max 65 chars, no spoken text",
+    "reveal": "visual action for ${timing.reveal}, max 65 chars, no spoken text",
+    "cta": "final frame for ${timing.cta}, max 45 chars, no spoken text"
   }
 }`
 
