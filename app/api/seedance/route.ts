@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'application/json',
     }
 
+    if (!process.env.FAL_KEY) throw new Error('FAL_KEY is not set in environment variables')
+
     // Submit to fal.ai queue
     const submitRes = await fetch(`${FAL_BASE}/${MODEL}`, {
       method: 'POST',
@@ -47,11 +49,12 @@ export async function POST(req: NextRequest) {
         resolution: '720p',
       }),
     })
+    const submitText = await submitRes.text()
     if (!submitRes.ok) {
-      const err = await submitRes.json().catch(() => ({}))
-      throw new Error((err as { detail?: string }).detail || `fal.ai error: ${submitRes.status}`)
+      const err = JSON.parse(submitText || '{}')
+      throw new Error(err.detail || err.message || `fal.ai error ${submitRes.status}: ${submitText.slice(0, 200)}`)
     }
-    const { request_id } = await submitRes.json() as { request_id: string }
+    const { request_id } = JSON.parse(submitText) as { request_id: string }
 
     // Poll status every 5s (max ~7 min)
     const statusUrl = `${FAL_BASE}/${MODEL}/requests/${request_id}/status`
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < 84; i++) {
       await new Promise(r => setTimeout(r, 5000))
       const statusRes = await fetch(statusUrl, { headers: { Authorization: `Key ${process.env.FAL_KEY}` } })
-      const { status } = await statusRes.json() as { status: string }
+      const { status } = await statusRes.json().catch(() => ({ status: 'IN_PROGRESS' })) as { status: string }
 
       if (status === 'COMPLETED') {
         const resultRes = await fetch(resultUrl, { headers: { Authorization: `Key ${process.env.FAL_KEY}` } })
