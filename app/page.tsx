@@ -263,6 +263,14 @@ export default function Home() {
   const [withNarration, setWithNarration] = useState(false)
   const [videoDetails, setVideoDetails] = useState('')
 
+  // Custom prompt mode
+  const [promptMode, setPromptMode] = useState<'ai' | 'custom'>('ai')
+  const [customScene, setCustomScene] = useState('')
+  const [customNarratorEnabled, setCustomNarratorEnabled] = useState(false)
+  const [customNarratorText, setCustomNarratorText] = useState('')
+  const [customMusicEnabled, setCustomMusicEnabled] = useState(false)
+  const [customMusicText, setCustomMusicText] = useState('')
+
   // Content generation
   const [genStep, setGenStep] = useState<'idle'|'loading'|'done'>('idle')
   const [genError, setGenError] = useState('')
@@ -349,7 +357,11 @@ export default function Home() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails }),
+        body: JSON.stringify(
+          promptMode === 'custom'
+            ? { imageBase64, imageMediaType, brandName, perfumeName, videoDuration, mode: 'custom', customScene, customNarratorEnabled, customNarratorText: customNarratorEnabled ? customNarratorText : '', customMusicEnabled, customMusicText: customMusicEnabled ? customMusicText : '' }
+            : { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails }
+        ),
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Generation failed')
@@ -516,6 +528,7 @@ export default function Home() {
     setExtraInstructions('')
     setWithMusic(false); setWithNarration(false); setVideoDetails('')
     setVideoPlatform('runway')
+    setPromptMode('ai'); setCustomScene(''); setCustomNarratorEnabled(false); setCustomNarratorText(''); setCustomMusicEnabled(false); setCustomMusicText('')
   }
 
   const scriptCopy = content
@@ -625,7 +638,28 @@ export default function Home() {
               )}
             </div>
 
-            {/* Options */}
+            {/* Content mode switcher */}
+            <div className={styles.platformRow}>
+              <div className={styles.optionLabel}>Content Mode</div>
+              <div className={styles.platformToggle}>
+                <button
+                  type="button"
+                  className={`${styles.platformBtn} ${promptMode === 'ai' ? styles.platformBtnActive : ''}`}
+                  onClick={() => setPromptMode('ai')}
+                >
+                  AI-Generated
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.platformBtn} ${promptMode === 'custom' ? styles.platformBtnActiveSeedance : ''}`}
+                  onClick={() => setPromptMode('custom')}
+                >
+                  Custom Prompt
+                </button>
+              </div>
+            </div>
+
+            {/* Brand + perfume — always shown */}
             <div className={styles.optionsGrid}>
               <OptionCard label="Brand Name">
                 <StyledInput value={brandName} onChange={setBrandName} placeholder="e.g. Chanel, Dior, Your Brand..." />
@@ -633,67 +667,111 @@ export default function Home() {
               <OptionCard label="Perfume Name">
                 <StyledInput value={perfumeName} onChange={setPerfumeName} placeholder="e.g. Midnight Oud, No. 5..." />
               </OptionCard>
-              <OptionCard label="Content Style">
-                <StyledSelect value={contentStyle} onChange={setContentStyle} options={CONTENT_STYLES} />
-              </OptionCard>
-              <OptionCard label="Target Audience">
-                <StyledSelect value={audience} onChange={setAudience} options={AUDIENCES} />
-              </OptionCard>
-              <OptionCard label="Call to Action">
-                <StyledSelect value={cta} onChange={setCta} options={CTAS} />
-              </OptionCard>
-              <OptionCard label="Video Duration">
-                <StyledSelect value={videoDuration} onChange={v => {
-                  setVideoDuration(v)
-                  if (v === '30') setWithAudio(false)
-                }} options={durationOpts} />
-              </OptionCard>
             </div>
 
-            {/* Extra details */}
-            <div className={styles.extraInstructionsWrap}>
-              <div className={styles.optionLabel}>Video Details <span className={styles.optionalTag}>(optional)</span></div>
-              <textarea
-                className={styles.textarea}
-                value={videoDetails}
-                onChange={e => setVideoDetails(e.target.value)}
-                placeholder="e.g. It's a limited edition summer release, target brides, emphasise the floral top notes..."
-                rows={2}
-              />
-            </div>
+            {promptMode === 'ai' ? (
+              <>
+                {/* AI mode options */}
+                <div className={styles.optionsGrid}>
+                  <OptionCard label="Content Style">
+                    <StyledSelect value={contentStyle} onChange={setContentStyle} options={CONTENT_STYLES} />
+                  </OptionCard>
+                  <OptionCard label="Target Audience">
+                    <StyledSelect value={audience} onChange={setAudience} options={AUDIENCES} />
+                  </OptionCard>
+                  <OptionCard label="Call to Action">
+                    <StyledSelect value={cta} onChange={setCta} options={CTAS} />
+                  </OptionCard>
+                  <OptionCard label="Video Duration">
+                    <StyledSelect value={videoDuration} onChange={v => {
+                      setVideoDuration(v)
+                      if (v === '30') setWithAudio(false)
+                    }} options={durationOpts} />
+                  </OptionCard>
+                </div>
+                <div className={styles.extraInstructionsWrap}>
+                  <div className={styles.optionLabel}>Video Details <span className={styles.optionalTag}>(optional)</span></div>
+                  <textarea
+                    className={styles.textarea}
+                    value={videoDetails}
+                    onChange={e => setVideoDetails(e.target.value)}
+                    placeholder="e.g. It's a limited edition summer release, target brides, emphasise the floral top notes..."
+                    rows={2}
+                  />
+                </div>
+                <div className={styles.toggleGroup}>
+                  <label className={styles.audioToggle}>
+                    <input type="checkbox" checked={withNarration} onChange={e => setWithNarration(e.target.checked)} />
+                    <span className={styles.audioToggleLabel}>🎙 Add video narration script</span>
+                  </label>
+                  <label className={styles.audioToggle}>
+                    <input type="checkbox" checked={withMusic} onChange={e => setWithMusic(e.target.checked)} />
+                    <span className={styles.audioToggleLabel}>🎵 Add background music suggestion</span>
+                  </label>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Custom prompt mode */}
+                <div className={styles.optionsGrid}>
+                  <OptionCard label="Video Duration">
+                    <StyledSelect value={videoDuration} onChange={v => setVideoDuration(v)} options={durationOpts} />
+                  </OptionCard>
+                </div>
+                <div className={styles.extraInstructionsWrap}>
+                  <div className={styles.optionLabel}>Scene Description</div>
+                  <textarea
+                    className={styles.textarea}
+                    value={customScene}
+                    onChange={e => setCustomScene(e.target.value)}
+                    placeholder="Describe the scene, mood, and visual concept you want for the video..."
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.toggleGroup}>
+                  <label className={styles.audioToggle}>
+                    <input type="checkbox" checked={customNarratorEnabled} onChange={e => setCustomNarratorEnabled(e.target.checked)} />
+                    <span className={styles.audioToggleLabel}>🎙 Add narrator script</span>
+                  </label>
+                  {customNarratorEnabled && (
+                    <textarea
+                      className={styles.textarea}
+                      value={customNarratorText}
+                      onChange={e => setCustomNarratorText(e.target.value)}
+                      placeholder="Optional: describe voice style or write specific lines. Leave empty to let AI generate narrator script from your concept."
+                      rows={2}
+                    />
+                  )}
+                  <label className={styles.audioToggle}>
+                    <input type="checkbox" checked={customMusicEnabled} onChange={e => setCustomMusicEnabled(e.target.checked)} />
+                    <span className={styles.audioToggleLabel}>🎵 Add background music</span>
+                  </label>
+                  {customMusicEnabled && (
+                    <textarea
+                      className={styles.textarea}
+                      value={customMusicText}
+                      onChange={e => setCustomMusicText(e.target.value)}
+                      placeholder="Optional: describe genre, mood, BPM, or specific tracks. Leave empty to let AI suggest music that fits your concept."
+                      rows={2}
+                    />
+                  )}
+                </div>
+              </>
+            )}
 
-            {/* Feature toggles */}
-            <div className={styles.toggleGroup}>
-              <label className={styles.audioToggle}>
-                <input type="checkbox" checked={withNarration} onChange={e => setWithNarration(e.target.checked)} />
-                <span className={styles.audioToggleLabel}>🎙 Add video narration script</span>
-              </label>
-              <label className={styles.audioToggle}>
-                <input type="checkbox" checked={withMusic} onChange={e => setWithMusic(e.target.checked)} />
-                <span className={styles.audioToggleLabel}>🎵 Add background music suggestion</span>
-              </label>
-            </div>
-
-            {/* Audio toggle — Runway only */}
-            {videoPlatform === 'runway' && videoDuration !== '30' && (
+            {/* Audio toggle — Runway only, AI mode only */}
+            {promptMode === 'ai' && videoPlatform === 'runway' && videoDuration !== '30' && (
               <div className={styles.audioToggleRow}>
                 <label className={styles.audioToggle}>
-                  <input
-                    type="checkbox"
-                    checked={withAudio}
-                    onChange={e => {
+                  <input type="checkbox" checked={withAudio} onChange={e => {
                       setWithAudio(e.target.checked)
-                      if (e.target.checked && !['4','6','8'].includes(videoDuration)) {
-                        setVideoDuration('8')
-                      }
-                    }}
-                  />
-                  <span className={styles.audioToggleLabel}>
-                    🔊 Generate with AI audio (uses Veo 3.1 Fast model — 4/6/8s only)
-                  </span>
+                      if (e.target.checked && !['4','6','8'].includes(videoDuration)) setVideoDuration('8')
+                    }} />
+                  <span className={styles.audioToggleLabel}>🔊 Generate with AI audio (uses Veo 3.1 Fast model — 4/6/8s only)</span>
                 </label>
               </div>
             )}
+
 
             {genError && <div className={styles.errorMsg}>⚠ {genError}</div>}
 

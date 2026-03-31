@@ -14,7 +14,7 @@ function getScriptTiming(duration: number) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails } = await req.json()
+    const { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails, mode, customScene, customNarratorEnabled, customNarratorText, customMusicEnabled, customMusicText } = await req.json()
 
     const STYLE_MAP: Record<string, string> = {
       luxury: 'luxury, aspirational, elegant, cinematic',
@@ -52,45 +52,32 @@ export async function POST(req: NextRequest) {
 
     const dur = parseInt(videoDuration) || 10
     const timing = getScriptTiming(dur)
+    const isCustom = mode === 'custom'
+    const hasNarration = isCustom ? !!customNarratorEnabled : withNarration
+    const hasMusic = isCustom ? !!customMusicEnabled : withMusic
 
-    const prompt = `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
-
-Analyze this perfume image and create a complete TikTok content package.
-
-Context:
-- Brand name: ${brandName || 'Unknown — infer from packaging if visible'}
-- Perfume name: ${perfumeName || 'Unknown — infer from the bottle/packaging if visible'}
-- Content style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}
-- Target audience: ${AUD_MAP[audience] || AUD_MAP.general}
-- Call to action: ${CTA_MAP[cta] || CTA_MAP.shop}
-- Video duration: ${dur <= 10 ? dur + ' seconds' : '30 seconds (3-clip format)'}${videoDetails ? `\n- Additional details from creator: ${videoDetails}` : ''}
-
-IMPORTANT: The "script" and "narrationScript" fields must contain plain text only — absolutely no emojis.
-IMPORTANT: The narrationScript total word count across all 4 segments combined must not exceed ${Math.round(dur * 2.5)} words (at 2.5 words/second for a ${dur}s video). Be concise — every word must earn its place.
-
-Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with this exact structure:
-{
+    const sharedJsonSchema = `{
   "perfumeName": "detected or inferred name",
   "brandName": "detected or inferred brand name",
   "vibeAnalysis": "2-sentence description of the perfume visual vibe and likely scent profile",
   "hook": "one powerful opening line (first 3 seconds) to stop the scroll",
   "script": {
-    "hook": "${timing.hook} hook text (spoken/on-screen) — keep it very short and punchy. No emojis.",
-    "buildup": "${timing.buildup} buildup narration — build desire and atmosphere. No emojis.",
-    "reveal": "${timing.reveal} product reveal — describe what to show on screen. No emojis.",
-    "cta": "${timing.cta} CTA text — strong close. No emojis."
-  },${withNarration ? `
+    "hook": "${timing.hook} hook text — very short and punchy. No emojis.",
+    "buildup": "${timing.buildup} buildup — build desire and atmosphere. No emojis.",
+    "reveal": "${timing.reveal} reveal — what to show on screen. No emojis.",
+    "cta": "${timing.cta} CTA — strong close. No emojis."
+  },${hasNarration ? `
   "narrationScript": {
-    "hook": "exact words to speak aloud for the hook (${timing.hook}). No emojis.",
-    "buildup": "exact spoken narration for buildup (${timing.buildup}). No emojis.",
-    "reveal": "exact spoken words for the reveal (${timing.reveal}). No emojis.",
-    "cta": "exact spoken call-to-action (${timing.cta}). No emojis."
-  },` : ''}${withMusic ? `
-  "musicSuggestion": "specific background music recommendation: genre, mood, tempo (BPM), energy level, and 1–2 example artist/track styles that would match this video perfectly",` : ''}
-  "caption": "full TikTok caption (2–4 sentences, engaging, matches the style)",
-  "hashtags": ["15", "relevant", "hashtags", "without", "the", "hash", "symbol"],
-  "tips": ["specific filming tip 1", "specific filming tip 2", "specific filming tip 3"],
-  "videoPrompt": "cinematic image-to-video prompt, max 180 chars: camera motion + lighting + atmosphere only. Style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}",
+    "hook": "spoken words for hook (${timing.hook}). No emojis.",
+    "buildup": "spoken narration for buildup (${timing.buildup}). No emojis.",
+    "reveal": "spoken words for reveal (${timing.reveal}). No emojis.",
+    "cta": "spoken call-to-action (${timing.cta}). No emojis."
+  },` : ''}${hasMusic ? `
+  "musicSuggestion": "background music: genre, mood, BPM, energy, 1–2 artist/track examples",` : ''}
+  "caption": "full TikTok caption (2–4 sentences)",
+  "hashtags": ["15", "relevant", "hashtags", "no", "hash", "symbol"],
+  "tips": ["filming tip 1", "filming tip 2", "filming tip 3"],
+  "videoPrompt": "cinematic image-to-video prompt, max 180 chars: camera motion + lighting + atmosphere only",
   "videoScenes": {
     "hook": "visual action for ${timing.hook}, max 55 chars, no spoken text",
     "buildup": "visual action for ${timing.buildup}, max 65 chars, no spoken text",
@@ -98,6 +85,38 @@ Return ONLY a valid JSON object (no markdown, no backticks, no extra text) with 
     "cta": "final frame for ${timing.cta}, max 45 chars, no spoken text"
   }
 }`
+
+    const sharedImportant = `IMPORTANT: script and narrationScript must be plain text only — no emojis.
+IMPORTANT: narrationScript total words across all 4 segments must not exceed ${Math.round(dur * 2.5)} words (${dur}s video at 2.5 words/sec).
+Return ONLY a valid JSON object — no markdown, no backticks, no extra text.`
+
+    const prompt = isCustom
+      ? `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
+
+The creator has a specific custom vision. Stay faithful to their concept and generate all content around it.
+
+Brand: ${brandName || 'infer from image'}
+Perfume: ${perfumeName || 'infer from image'}
+Video duration: ${dur} seconds
+Custom concept: "${customScene}"${customNarratorEnabled ? (customNarratorText ? `\nNarrator style/lines: "${customNarratorText}"` : '\nNarrator: auto-generate to fit the concept') : ''}${customMusicEnabled ? (customMusicText ? `\nMusic preference: "${customMusicText}"` : '\nMusic: auto-generate a fitting suggestion') : ''}
+
+${sharedImportant}
+
+${sharedJsonSchema}`
+      : `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
+
+Analyze this perfume image and create a complete TikTok content package.
+
+Brand: ${brandName || 'Unknown — infer from packaging'}
+Perfume: ${perfumeName || 'Unknown — infer from packaging'}
+Style: ${STYLE_MAP[contentStyle] || STYLE_MAP.luxury}
+Audience: ${AUD_MAP[audience] || AUD_MAP.general}
+CTA: ${CTA_MAP[cta] || CTA_MAP.shop}
+Duration: ${dur} seconds${videoDetails ? `\nExtra details: ${videoDetails}` : ''}
+
+${sharedImportant}
+
+${sharedJsonSchema}`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
