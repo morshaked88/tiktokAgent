@@ -84,6 +84,12 @@ const DURATION_OPTIONS_AUDIO = [
   { value: '8', label: '8s — Recommended' },
 ]
 
+const DURATION_OPTIONS_VEO = [
+  { value: '4', label: '4s — Quick' },
+  { value: '6', label: '6s — Short' },
+  { value: '8', label: '8s — Recommended' },
+]
+
 /* ── Script timing labels (mirrors generate/route.ts logic) ─ */
 function getTimingLabels(duration: number) {
   if (duration <= 5)  return { hook: '0–1s', buildup: '1–3s', reveal: '3–4s', cta: '4–5s' }
@@ -361,11 +367,11 @@ export default function Home() {
     setVideoStep('submitting')
     setVideoError('')
     setVideoProgress(10)
-    setVideoStatusText('Sending to Seedance...')
+    setVideoStatusText('Sending to Veo 3.1 Fast...')
 
     pollRef.current = setInterval(() => {
       setVideoProgress(p => Math.min(p + 1, 90))
-      setVideoStatusText('Seedance is generating your video with AI audio — 2–5 min')
+      setVideoStatusText('Veo 3.1 is generating your video with AI audio — 2–5 min')
     }, 6000)
 
     try {
@@ -382,7 +388,7 @@ export default function Home() {
       })
       const data = await res.json()
       clearInterval(pollRef.current!)
-      if (!res.ok || data.error) throw new Error(data.error || 'Seedance generation failed')
+      if (!res.ok || data.error) throw new Error(data.error || 'Veo 3.1 generation failed')
       setVideoProgress(100)
       setVideoUrl(data.videoUrl)
       setVideoStep('done')
@@ -535,7 +541,7 @@ export default function Home() {
     return parts.join('. ').slice(0, 1500)
   })() : ''
 
-  const durationOpts = withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
+  const durationOpts = videoPlatform === 'seedance' ? DURATION_OPTIONS_VEO : withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
 
   return (
     <main className={styles.main}>
@@ -548,7 +554,7 @@ export default function Home() {
           <p className={styles.subtitle}>TikTok Content Studio for Perfume Brands</p>
           <div className={styles.badgeRow}>
             <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Powered by Claude AI</span>
-            <span className={`${styles.badge} ${styles.badgeRunway}`}>Runway ML + Seedance</span>
+            <span className={`${styles.badge} ${styles.badgeRunway}`}>Runway ML + Veo 3.1 Fast</span>
           </div>
         </header>
 
@@ -608,13 +614,13 @@ export default function Home() {
                 <button
                   type="button"
                   className={`${styles.platformBtn} ${videoPlatform === 'seedance' ? styles.platformBtnActiveSeedance : ''}`}
-                  onClick={() => { setVideoPlatform('seedance'); setWithAudio(false) }}
+                  onClick={() => { setVideoPlatform('seedance'); setWithAudio(false); if (!['4','6','8'].includes(videoDuration)) setVideoDuration('8') }}
                 >
-                  Seedance v1.5 Pro
+                  Veo 3.1 Fast
                 </button>
               </div>
               {videoPlatform === 'seedance' && (
-                <p className={styles.platformNote}>10s portrait video with native AI audio</p>
+                <p className={styles.platformNote}>Up to 8s portrait video with native AI audio</p>
               )}
             </div>
 
@@ -805,7 +811,7 @@ export default function Home() {
             <div className={styles.videoDivider}>
               <div className={styles.dividerLine} />
               <span className={styles.dividerLabel}>
-                {videoPlatform === 'seedance' ? 'AI Video via Seedance v1.5 Pro' : 'AI Video via Runway ML'}
+                {videoPlatform === 'seedance' ? 'AI Video via Veo 3.1 Fast' : 'AI Video via Runway ML'}
               </span>
               <div className={styles.dividerLine} />
             </div>
@@ -837,7 +843,7 @@ export default function Home() {
                 <div className={styles.videoMeta}>
                   {videoPlatform === 'seedance' ? (
                     <>
-                      <span>Duration: <strong>{videoDuration}s</strong></span>
+                      <span>Duration: <strong>{Math.min(parseInt(videoDuration)||8, 8)}s</strong></span>
                       <span className={styles.audioBadge}>Native AI Audio</span>
                     </>
                   ) : (
@@ -854,7 +860,7 @@ export default function Home() {
                   className={videoPlatform === 'seedance' ? styles.generateSeedanceBtn : styles.generateVideoBtn}
                   onClick={generateVideo}
                 >
-                  {videoPlatform === 'seedance' ? 'Generate Video with Seedance' : 'Generate TikTok Video with Runway'}
+                  {videoPlatform === 'seedance' ? 'Generate Video with Veo 3.1 Fast' : 'Generate TikTok Video with Runway'}
                 </button>
               </>
             )}
