@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const hasNarration = isCustom ? !!customNarratorEnabled : withNarration
     const hasMusic = isCustom ? !!customMusicEnabled : withMusic
 
-    const sharedJsonSchema = `{
+    const commonFields = `
   "perfumeName": "detected or inferred name",
   "brandName": "detected or inferred brand name",
   "vibeAnalysis": "2-sentence description of the perfume visual vibe and likely scent profile",
@@ -76,8 +76,21 @@ export async function POST(req: NextRequest) {
   "musicSuggestion": "background music: genre, mood, BPM, energy, 1–2 artist/track examples",` : ''}
   "caption": "full TikTok caption (2–4 sentences)",
   "hashtags": ["15", "relevant", "hashtags", "no", "hash", "symbol"],
-  "tips": ["filming tip 1", "filming tip 2", "filming tip 3"],
+  "tips": ["filming tip 1", "filming tip 2", "filming tip 3"]`
+
+    const aiJsonSchema = `{${commonFields},
   "videoPrompt": "cinematic image-to-video prompt, max 180 chars: camera motion + lighting + atmosphere only",
+  "videoScenes": {
+    "hook": "visual action for ${timing.hook}, max 55 chars, no spoken text",
+    "buildup": "visual action for ${timing.buildup}, max 65 chars, no spoken text",
+    "reveal": "visual action for ${timing.reveal}, max 65 chars, no spoken text",
+    "cta": "final frame for ${timing.cta}, max 45 chars, no spoken text"
+  }
+}`
+
+    const customJsonSchema = `{${commonFields},
+  "videoPrompt": "Elaborate the creator's rough concept into a detailed cinematic AI video prompt (max 600 chars). Expand with: specific camera movements, lighting details, textures, atmosphere, and explicit product integrity rules (label always visible, no shape distortion, etc). Hyper-realistic, high-end commercial quality. Do NOT include timing labels.",
+  "negativePrompt": "comma-separated list of things to avoid: distortions, flickering, blurry text, shape changes, quality issues — max 150 chars",
   "videoScenes": {
     "hook": "visual action for ${timing.hook}, max 55 chars, no spoken text",
     "buildup": "visual action for ${timing.buildup}, max 65 chars, no spoken text",
@@ -91,18 +104,18 @@ IMPORTANT: narrationScript total words across all 4 segments must not exceed ${M
 Return ONLY a valid JSON object — no markdown, no backticks, no extra text.`
 
     const prompt = isCustom
-      ? `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
+      ? `You are an expert AI video prompt engineer and TikTok content creator specializing in luxury perfume.
 
-The creator has a specific custom vision. Stay faithful to their concept and generate all content around it.
+The creator has a rough vision — your job is to elaborate it into a polished cinematic AI video prompt while generating the full content package.
 
 Brand: ${brandName || 'infer from image'}
 Perfume: ${perfumeName || 'infer from image'}
 Video duration: ${dur} seconds
-Custom concept: "${customScene}"${customNarratorEnabled ? (customNarratorText ? `\nNarrator style/lines: "${customNarratorText}"` : '\nNarrator: auto-generate to fit the concept') : ''}${customMusicEnabled ? (customMusicText ? `\nMusic preference: "${customMusicText}"` : '\nMusic: auto-generate a fitting suggestion') : ''}
+Creator's concept: "${customScene}"${customNarratorEnabled ? (customNarratorText ? `\nNarrator style/lines: "${customNarratorText}"` : '\nNarrator: auto-generate to match the concept') : ''}${customMusicEnabled ? (customMusicText ? `\nMusic preference: "${customMusicText}"` : '\nMusic: auto-generate a fitting suggestion') : ''}
 
 ${sharedImportant}
 
-${sharedJsonSchema}`
+${customJsonSchema}`
       : `You are an expert TikTok content creator specializing in luxury perfume and fragrance brands.
 
 Analyze this perfume image and create a complete TikTok content package.
@@ -116,31 +129,40 @@ Duration: ${dur} seconds${videoDetails ? `\nExtra details: ${videoDetails}` : ''
 
 ${sharedImportant}
 
-${sharedJsonSchema}`
+${aiJsonSchema}`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const body = JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 1500,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
+          { type: 'text', text: prompt },
+        ],
+      }],
+    })
+
+    const fetchClaude = () => fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY!,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 1500,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
-            { type: 'text', text: prompt },
-          ],
-        }],
-      }),
+      body,
     })
 
+    let response = await fetchClaude()
+    for (let attempt = 1; attempt <= 3 && response.status === 529; attempt++) {
+      await new Promise(r => setTimeout(r, attempt * 8000))
+      response = await fetchClaude()
+    }
+
     if (!response.ok) {
-      const err = await response.json()
-      return NextResponse.json({ error: err.error?.message || 'Anthropic API error' }, { status: 500 })
+      const err = await response.json().catch(() => ({}))
+      const msg = (err as { error?: { message?: string } }).error?.message || `Anthropic API error ${response.status}`
+      return NextResponse.json({ error: response.status === 529 ? 'Claude is overloaded — please try again in a moment.' : msg }, { status: 500 })
     }
 
     const data = await response.json()

@@ -5,7 +5,7 @@ export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, videoPrompt, duration, extraInstructions } = await req.json()
+    const { imageDataUrl, videoPrompt, negativePrompt, duration, extraInstructions } = await req.json()
 
     if (!process.env.FAL_KEY) throw new Error('FAL_KEY is not set in environment variables')
     fal.config({ credentials: process.env.FAL_KEY })
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       input: {
         image_url: imageUrl,
         prompt: finalPrompt,
+        ...(negativePrompt ? { negative_prompt: negativePrompt } : {}),
         duration: dur,
         aspect_ratio: '9:16',
         generate_audio: true,

@@ -17,6 +17,7 @@ interface ContentResult {
   tips: string[]
   videoPrompt: string
   videoScenes?: { hook: string; buildup: string; reveal: string; cta: string }
+  negativePrompt?: string
 }
 
 /* ── Constants ───────────────────────────────────────────── */
@@ -393,6 +394,7 @@ export default function Home() {
         body: JSON.stringify({
           imageDataUrl: composited,
           videoPrompt: fullVideoPrompt,
+          negativePrompt: content?.negativePrompt || '',
           duration: videoDuration,
           visualStyle: videoStyle,
           extraInstructions,
@@ -538,10 +540,16 @@ export default function Home() {
   // Video prompt — hard cap 1200 chars, narration word-limited to fit duration
   const fullVideoPrompt = content ? (() => {
     const parts: string[] = []
-    parts.push(content.videoPrompt.slice(0, 180))
-    if (content.videoScenes) {
-      const s = content.videoScenes
-      parts.push(`${timing.hook}: ${s.hook.slice(0, 55)}. ${timing.buildup}: ${s.buildup.slice(0, 65)}. ${timing.reveal}: ${s.reveal.slice(0, 65)}. ${timing.cta}: ${s.cta.slice(0, 45)}`)
+    if (promptMode === 'custom') {
+      // Custom: elaborated videoPrompt is the main content (up to 600 chars)
+      parts.push(content.videoPrompt.slice(0, 600))
+    } else {
+      // AI mode: short cinematic desc + per-scene cues
+      parts.push(content.videoPrompt.slice(0, 180))
+      if (content.videoScenes) {
+        const s = content.videoScenes
+        parts.push(`${timing.hook}: ${s.hook.slice(0, 55)}. ${timing.buildup}: ${s.buildup.slice(0, 65)}. ${timing.reveal}: ${s.reveal.slice(0, 65)}. ${timing.cta}: ${s.cta.slice(0, 45)}`)
+      }
     }
     if (content.narrationScript) {
       const n = content.narrationScript
@@ -885,6 +893,20 @@ export default function Home() {
                 ))}
               </div>
             </ContentCard>
+
+            {/* Elaborated video prompt — custom mode only */}
+            {promptMode === 'custom' && content.videoPrompt && (
+              <ContentCard icon="🎬" iconBg="linear-gradient(135deg,rgba(105,201,208,0.2),rgba(179,136,255,0.2))"
+                title="Elaborated Video Prompt" copyText={content.videoPrompt + (content.negativePrompt ? `\n\nNegative: ${content.negativePrompt}` : '')}>
+                <p className={styles.bodyText}>{content.videoPrompt}</p>
+                {content.negativePrompt && (
+                  <div className={styles.scriptSection} style={{ marginTop: '0.75rem' }}>
+                    <div className={styles.scriptLabel}>Negative Prompt</div>
+                    <p className={styles.bodyText}>{content.negativePrompt}</p>
+                  </div>
+                )}
+              </ContentCard>
+            )}
 
             {/* ── Video section ── */}
             <div className={styles.videoDivider}>
