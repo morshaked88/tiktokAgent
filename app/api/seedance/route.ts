@@ -31,10 +31,11 @@ export async function POST(req: NextRequest) {
     const res: Resolution = RESOLUTIONS.includes(resolution) ? resolution : '720p'
     const ar: Aspect = ASPECTS.includes(aspectRatio) ? aspectRatio : 'auto'
 
-    let dur: string = 'auto'
+    // Seedance expects duration as an integer (4–15), not a string — except the literal "auto"
+    let dur: number | 'auto' = 'auto'
     if (duration && duration !== 'auto') {
       const n = parseInt(String(duration), 10)
-      if (Number.isFinite(n) && n >= 4 && n <= 15) dur = String(n)
+      if (Number.isFinite(n) && n >= 4 && n <= 15) dur = n
     }
 
     const baseInput = {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
       result = await runWithAudio(audioUsed)
     } catch (firstErr: unknown) {
       const msg = firstErr instanceof Error ? firstErr.message : String(firstErr)
-      const isSensitiveAudio = msg.toLowerCase().includes('sensitive content') || msg.includes('422')
+      const isSensitiveAudio = msg.toLowerCase().includes('sensitive content')
       if (isSensitiveAudio && audioUsed) {
         // Audio triggered content filter — retry silently without audio
         audioUsed = false
