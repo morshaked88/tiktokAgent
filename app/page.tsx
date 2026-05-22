@@ -1,163 +1,74 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import styles from './page.module.css'
 
 /* ── Types ───────────────────────────────────────────────── */
-interface ContentResult {
-  perfumeName: string
-  brandName: string
-  vibeAnalysis: string
-  hook: string
-  script: { hook: string; buildup: string; reveal: string; cta: string }
-  narrationScript?: { hook: string; buildup: string; reveal: string; cta: string }
-  musicSuggestion?: string
-  caption: string
-  hashtags: string[]
-  tips: string[]
-  videoPrompt: string
-  videoScenes?: { hook: string; buildup: string; reveal: string; cta: string }
-  negativePrompt?: string
-}
+type Step =
+  | 'upload'
+  | 'prompts-loading'
+  | 'prompts-ready'
+  | 'frame-loading'
+  | 'frame-ready'
+  | 'video-config'
+  | 'video-loading'
+  | 'video-done'
+
+type Resolution = '480p' | '720p' | '1080p'
+type Aspect = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'
 
 /* ── Constants ───────────────────────────────────────────── */
-const CONTENT_STYLES = [
-  { value: 'luxury',       label: '✨ Luxury & Aspirational' },
-  { value: 'trendy',       label: '🔥 Trendy & Gen-Z' },
-  { value: 'romantic',     label: '🌹 Romantic & Sensual' },
-  { value: 'storytelling', label: '📖 Story-Driven' },
-  { value: 'educational',  label: '🧪 Educational' },
-  { value: 'minimalist',   label: '🤍 Minimalist & Modern' },
-  { value: 'asmr',         label: '🎙 ASMR Close-Up' },
-  { value: 'humor',        label: '😂 Humorous & Relatable' },
-  { value: 'bold',         label: '⚡ Bold & Hype' },
-  { value: 'comparison',   label: '⚖️ Comparison / Dupe' },
+const GENDERS = [
+  { value: 'women', label: 'Women' },
+  { value: 'men', label: 'Men' },
+  { value: 'unisex', label: 'Unisex' },
 ]
 
-const AUDIENCES = [
-  { value: 'general',      label: 'General Fragrance Lovers' },
-  { value: 'genz',         label: 'Gen Z (18–25)' },
-  { value: 'millennials',  label: 'Millennials (26–40)' },
-  { value: 'luxury',       label: 'Luxury Shoppers' },
-  { value: 'gifters',      label: 'Gift Buyers' },
-  { value: 'men',          label: "Men's Fragrance (35–55)" },
-  { value: 'collectors',   label: 'Niche Collectors' },
-  { value: 'budget',       label: 'Budget-Conscious Shoppers' },
-  { value: 'wellness',     label: 'Wellness & Clean Beauty' },
-  { value: 'professional', label: 'Office / Daily Wearers' },
+const VIDEO_DURATIONS = [
+  { value: '4',  label: '4s' },
+  { value: '5',  label: '5s' },
+  { value: '6',  label: '6s' },
+  { value: '7',  label: '7s' },
+  { value: '8',  label: '8s — Recommended' },
+  { value: '9',  label: '9s' },
+  { value: '10', label: '10s' },
+  { value: '12', label: '12s' },
+  { value: '15', label: '15s' },
 ]
 
-const CTAS = [
-  { value: 'shop', label: 'Shop Now' },
-  { value: 'link', label: 'Link in Bio' },
-  { value: 'dm',   label: 'DM to Order' },
-  { value: 'save', label: 'Save for Later' },
-  { value: 'none', label: 'No CTA' },
+const RESOLUTIONS: { value: Resolution; label: string }[] = [
+  { value: '480p',  label: '480p' },
+  { value: '720p',  label: '720p — Recommended' },
+  { value: '1080p', label: '1080p' },
 ]
 
-const VIDEO_STYLES = [
-  { value: 'cinematic', label: '✨ Luxury Cinematic' },
-  { value: 'studio',    label: '🎞 Clean Studio' },
-  { value: 'dreamy',    label: '🌹 Dreamy Romantic' },
-  { value: 'trendy',    label: '⚡ Trendy & Bold' },
+const SEEDANCE_DURATIONS = [
+  { value: 'auto', label: 'Auto' },
+  { value: '4',  label: '4s' },
+  { value: '5',  label: '5s' },
+  { value: '6',  label: '6s' },
+  { value: '7',  label: '7s' },
+  { value: '8',  label: '8s' },
+  { value: '9',  label: '9s' },
+  { value: '10', label: '10s' },
+  { value: '11', label: '11s' },
+  { value: '12', label: '12s' },
+  { value: '13', label: '13s' },
+  { value: '14', label: '14s' },
+  { value: '15', label: '15s' },
 ]
 
-const BACKGROUNDS = [
-  { value: 'original',        label: '📸 Original Photo' },
-  { value: 'bokeh',           label: '🌟 Bokeh Blur' },
-  { value: 'gradient-gold',   label: '✨ Gold Luxury' },
-  { value: 'gradient-purple', label: '💜 Purple Dream' },
-  { value: 'gradient-pink',   label: '🌸 Rose Pink' },
-  { value: 'gradient-dark',   label: '🖤 Dark & Moody' },
-  { value: 'gradient-teal',   label: '🌊 Deep Teal' },
-  { value: 'studio-white',    label: '⬜ Studio White' },
+const ASPECTS: { value: Aspect; label: string }[] = [
+  { value: 'auto', label: 'Auto (from image)' },
+  { value: '9:16', label: '9:16 — Portrait' },
+  { value: '3:4',  label: '3:4' },
+  { value: '1:1',  label: '1:1 — Square' },
+  { value: '4:3',  label: '4:3' },
+  { value: '16:9', label: '16:9 — Landscape' },
+  { value: '21:9', label: '21:9 — Cinematic' },
 ]
 
-const DURATION_OPTIONS = [
-  { value: '5',  label: '5s — Quick Preview' },
-  { value: '8',  label: '8s — Short Reel' },
-  { value: '10', label: '10s — Standard' },
-]
-
-const DURATION_OPTIONS_AUDIO = [
-  { value: '4', label: '4s' },
-  { value: '6', label: '6s' },
-  { value: '8', label: '8s — Recommended' },
-]
-
-const DURATION_OPTIONS_VEO = [
-  { value: '4', label: '4s — Quick' },
-  { value: '6', label: '6s — Short' },
-  { value: '8', label: '8s — Recommended' },
-]
-
-/* ── Script timing labels (mirrors generate/route.ts logic) ─ */
-function getTimingLabels(duration: number) {
-  if (duration <= 5)  return { hook: '0–1s', buildup: '1–3s', reveal: '3–4s', cta: '4–5s' }
-  if (duration <= 8)  return { hook: '0–2s', buildup: '2–5s', reveal: '5–7s', cta: '7–8s' }
-  if (duration <= 10) return { hook: '0–2s', buildup: '2–6s', reveal: '6–9s', cta: '9–10s' }
-  return { hook: '0–3s', buildup: '3–15s', reveal: '15–25s', cta: '25–30s' }
-}
-
-/* ── Background compositing ──────────────────────────────── */
-async function compositeBackground(imageDataUrl: string, bg: string): Promise<string> {
-  if (bg === 'original') return imageDataUrl
-
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = 720
-      canvas.height = 1280
-      const ctx = canvas.getContext('2d')!
-
-      if (bg === 'bokeh') {
-        // Blurred full-bleed background
-        const bgScale = Math.max(720 / img.width, 1280 / img.height)
-        ctx.filter = 'blur(28px)'
-        ctx.drawImage(
-          img,
-          (720 - img.width * bgScale) / 2,
-          (1280 - img.height * bgScale) / 2,
-          img.width * bgScale,
-          img.height * bgScale,
-        )
-        ctx.filter = 'none'
-        ctx.fillStyle = 'rgba(0,0,0,0.35)'
-        ctx.fillRect(0, 0, 720, 1280)
-      } else {
-        const gradients: Record<string, [string, string, string]> = {
-          'gradient-gold':   ['#0d0800', '#3d2b00', '#1a1400'],
-          'gradient-purple': ['#0d0014', '#2d0047', '#0d001a'],
-          'gradient-pink':   ['#1a0010', '#4d0028', '#1a000d'],
-          'gradient-dark':   ['#000000', '#111111', '#000000'],
-          'gradient-teal':   ['#00141a', '#003d4d', '#001a1f'],
-          'studio-white':    ['#f5f5f5', '#ffffff', '#eeeeee'],
-        }
-        const [c1, c2, c3] = gradients[bg] || gradients['gradient-gold']
-        const grad = ctx.createLinearGradient(0, 0, 0, 1280)
-        grad.addColorStop(0, c1)
-        grad.addColorStop(0.5, c2)
-        grad.addColorStop(1, c3)
-        ctx.fillStyle = grad
-        ctx.fillRect(0, 0, 720, 1280)
-      }
-
-      // Draw product image centered at 72% of canvas area
-      const maxW = 720 * 0.72
-      const maxH = 1280 * 0.72
-      const scale = Math.min(maxW / img.width, maxH / img.height)
-      const w = img.width * scale
-      const h = img.height * scale
-      ctx.drawImage(img, (720 - w) / 2, (1280 - h) / 2, w, h)
-
-      resolve(canvas.toDataURL('image/jpeg', 0.92))
-    }
-    img.src = imageDataUrl
-  })
-}
-
-/* ── Small UI helpers ────────────────────────────────────── */
+/* ── UI helpers ──────────────────────────────────────────── */
 function OptionCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className={styles.optionCard}>
@@ -167,13 +78,13 @@ function OptionCard({ label, children }: { label: string; children: React.ReactN
   )
 }
 
-function StyledSelect({ value, onChange, options }: {
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
+function StyledSelect<T extends string>({ value, onChange, options }: {
+  value: T
+  onChange: (v: T) => void
+  options: { value: T; label: string }[]
 }) {
   return (
-    <select className={styles.select} value={value} onChange={e => onChange(e.target.value)}>
+    <select className={styles.select} value={value} onChange={e => onChange(e.target.value as T)}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   )
@@ -193,57 +104,46 @@ function StyledInput({ value, onChange, placeholder }: {
   )
 }
 
-function ContentCard({
-  icon, iconBg, title, children, copyText,
-}: {
-  icon: string; iconBg: string; title: string; children: React.ReactNode; copyText?: string
-}) {
+function PromptCard({
+  title, icon, value, onChange,
+}: { title: string; icon: string; value: string; onChange: (v: string) => void }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
-    if (!copyText) return
-    navigator.clipboard.writeText(copyText)
+    navigator.clipboard.writeText(value)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => setCopied(false), 1500)
   }
   return (
     <div className={styles.contentCard}>
       <div className={styles.cardHeader}>
         <div className={styles.cardType}>
-          <div className={styles.cardIcon} style={{ background: iconBg }}>{icon}</div>
+          <div className={styles.cardIcon} style={{ background: 'linear-gradient(135deg,rgba(105,201,208,0.2),rgba(179,136,255,0.2))' }}>{icon}</div>
           <span className={styles.cardTitle}>{title}</span>
         </div>
-        {copyText && (
-          <button className={`${styles.copyBtn} ${copied ? styles.copyBtnCopied : ''}`} onClick={copy}>
-            {copied ? '✓ Copied' : 'Copy'}
-          </button>
-        )}
+        <button className={`${styles.copyBtn} ${copied ? styles.copyBtnCopied : ''}`} onClick={copy}>
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
       </div>
-      <div className={styles.cardBody}>{children}</div>
-    </div>
-  )
-}
-
-/* ── Clip card for multi-clip mode ───────────────────────── */
-function ClipCard({ label, url }: { label: string; url: string | null }) {
-  return (
-    <div className={styles.clipCard}>
-      <div className={styles.clipLabel}>{label}</div>
-      {url ? (
-        <>
-          <video src={url} controls playsInline className={styles.videoEl} />
-          <a href={url} download={`${label.toLowerCase().replace(/\s+/g, '-')}.mp4`} className={styles.dlBtn}>
-            ⬇ Download
-          </a>
-        </>
-      ) : (
-        <div className={styles.clipPending}>Generating…</div>
-      )}
+      <div className={styles.cardBody}>
+        <textarea
+          className={styles.textarea}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          rows={Math.max(3, Math.min(8, Math.ceil(value.length / 80)))}
+        />
+      </div>
     </div>
   )
 }
 
 /* ── Main page ───────────────────────────────────────────── */
 export default function Home() {
+  // Flow state
+  const [step, setStep] = useState<Step>('upload')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [progress, setProgress] = useState(5)
+  const progressRef = useRef<NodeJS.Timeout | null>(null)
+
   // Image
   const [imageBase64, setImageBase64] = useState<string | null>(null)
   const [imageMediaType, setImageMediaType] = useState<string>('image/jpeg')
@@ -251,63 +151,43 @@ export default function Home() {
   const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Form
+  // Form (step 1)
   const [brandName, setBrandName] = useState('')
   const [perfumeName, setPerfumeName] = useState('')
-  const [contentStyle, setContentStyle] = useState('luxury')
-  const [audience, setAudience] = useState('general')
-  const [cta, setCta] = useState('shop')
-  const [videoPlatform, setVideoPlatform] = useState<'runway' | 'seedance'>('runway')
-  const [videoDuration, setVideoDuration] = useState('10')
-  const [withAudio, setWithAudio] = useState(false)
-  const [withMusic, setWithMusic] = useState(false)
-  const [withNarration, setWithNarration] = useState(false)
-  const [videoDetails, setVideoDetails] = useState('')
-
-  // Custom prompt mode
-  const [promptMode, setPromptMode] = useState<'ai' | 'custom'>('ai')
+  const [gender, setGender] = useState('women')
+  const [videoDuration, setVideoDuration] = useState('8')
   const [customScene, setCustomScene] = useState('')
-  const [customNarratorEnabled, setCustomNarratorEnabled] = useState(false)
-  const [customNarratorText, setCustomNarratorText] = useState('')
-  const [customMusicEnabled, setCustomMusicEnabled] = useState(false)
-  const [customMusicText, setCustomMusicText] = useState('')
 
-  // Content generation
-  const [genStep, setGenStep] = useState<'idle'|'loading'|'done'>('idle')
-  const [genError, setGenError] = useState('')
-  const [content, setContent] = useState<ContentResult | null>(null)
+  // Generated prompts (step 3)
+  const [positivePrompt, setPositivePrompt] = useState('')
+  const [negativePrompt, setNegativePrompt] = useState('')
+  const [firstFramePrompt, setFirstFramePrompt] = useState('')
 
-  // Video options (after content is generated)
-  const [videoStyle, setVideoStyle] = useState('cinematic')
-  const [background, setBackground] = useState('original')
-  const [extraInstructions, setExtraInstructions] = useState('')
+  // First-frame image
+  const [firstFrameUrl, setFirstFrameUrl] = useState('')
 
-  // Single-clip video state
-  const [videoStep, setVideoStep] = useState<'idle'|'submitting'|'done'|'error'>('idle')
-  const [videoProgress, setVideoProgress] = useState(5)
-  const [videoStatusText, setVideoStatusText] = useState('')
+  // Seedance video options (step 6)
+  const [seedanceResolution, setSeedanceResolution] = useState<Resolution>('720p')
+  const [seedanceDuration, setSeedanceDuration] = useState('auto')
+  const [seedanceAspect, setSeedanceAspect] = useState<Aspect>('9:16')
+  const [seedanceAudio, setSeedanceAudio] = useState(true)
+
+  // Final video
   const [videoUrl, setVideoUrl] = useState('')
-  const [videoError, setVideoError] = useState('')
-  const pollRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Multi-clip video state (3 × 10s)
-  const [clipUrls, setClipUrls] = useState<(string | null)[]>([null, null, null])
-  const [clipErrors, setClipErrors] = useState<(string | null)[]>([null, null, null])
+  useEffect(() => () => {
+    if (progressRef.current) clearInterval(progressRef.current)
+  }, [])
 
-  const isMultiClip = videoDuration === '30'
-  const dur = parseInt(videoDuration) || 10
-  const timing = getTimingLabels(dur)
-
-  /* ── Image ── */
+  /* ── Image upload ── */
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.onload = e => {
       const originalUrl = e.target?.result as string
       const originalB64 = originalUrl.split(',')[1]
-      const MAX_B64 = 4_500_000 // stay under Claude's 5 MB limit
+      const MAX_B64 = 4_500_000
 
-      // If already small enough, use original without any quality loss
       if (originalB64.length <= MAX_B64) {
         setImageDataUrl(originalUrl)
         setImageBase64(originalB64)
@@ -315,7 +195,6 @@ export default function Home() {
         return
       }
 
-      // Only compress if needed — binary search for highest quality under limit
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
@@ -348,222 +227,141 @@ export default function Home() {
     if (file) processFile(file)
   }, [])
 
-  /* ── Step 1: Generate content ── */
-  const generateContent = async () => {
-    if (!imageBase64) return
-    setGenStep('loading')
-    setGenError('')
+  /* ── Progress helpers ── */
+  const startProgress = (ceiling = 90, tickMs = 1200) => {
+    if (progressRef.current) clearInterval(progressRef.current)
+    setProgress(8)
+    progressRef.current = setInterval(() => {
+      setProgress(p => Math.min(p + 1, ceiling))
+    }, tickMs)
+  }
+  const stopProgress = (final = 100) => {
+    if (progressRef.current) clearInterval(progressRef.current)
+    progressRef.current = null
+    setProgress(final)
+  }
 
+  /* ── Step 1 → 3: Generate the 3 prompts ── */
+  const generatePrompts = async () => {
+    if (!imageBase64) return
+    setStep('prompts-loading')
+    setErrorMsg('')
     try {
-      const res = await fetch('/api/generate', {
+      const res = await fetch('/api/prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          promptMode === 'custom'
-            ? { imageBase64, imageMediaType, brandName, perfumeName, videoDuration, mode: 'custom', customScene, customNarratorEnabled, customNarratorText: customNarratorEnabled ? customNarratorText : '', customMusicEnabled, customMusicText: customMusicEnabled ? customMusicText : '' }
-            : { imageBase64, imageMediaType, brandName, perfumeName, contentStyle, audience, cta, videoDuration, withMusic, withNarration, videoDetails }
-        ),
+        body: JSON.stringify({
+          imageBase64, imageMediaType,
+          brandName, perfumeName, gender, videoDuration, customScene,
+        }),
       })
       const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || 'Generation failed')
-      setContent(data)
-      setGenStep('done')
+      if (!res.ok || data.error) throw new Error(data.error || 'Prompt generation failed')
+      setPositivePrompt(data.positivePrompt)
+      setNegativePrompt(data.negativePrompt)
+      setFirstFramePrompt(data.firstFramePrompt)
+      setStep('prompts-ready')
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      setGenError(message)
-      setGenStep('idle')
+      setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+      setStep('upload')
     }
   }
 
-  /* ── Step 2a: Seedance ── */
-  const generateSeedanceVideo = async (composited: string) => {
-    setVideoStep('submitting')
-    setVideoError('')
-    setVideoProgress(10)
-    setVideoStatusText('Sending to Veo 3.1 Fast...')
-
-    pollRef.current = setInterval(() => {
-      setVideoProgress(p => Math.min(p + 1, 90))
-      setVideoStatusText('Veo 3.1 is generating your video with AI audio — 2–5 min')
-    }, 6000)
-
+  /* ── Step 3 → 5: Generate first-frame image ── */
+  const generateFirstFrame = async () => {
+    if (!imageBase64 || !firstFramePrompt) return
+    setStep('frame-loading')
+    setErrorMsg('')
+    startProgress(90, 1500)
     try {
+      const res = await fetch('/api/first-frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64, imageMediaType,
+          firstFramePrompt,
+          aspectRatio: seedanceAspect === 'auto' ? '9:16' : seedanceAspect,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'First-frame generation failed')
+      stopProgress()
+      setFirstFrameUrl(data.imageUrl)
+      setStep('frame-ready')
+    } catch (e: unknown) {
+      stopProgress(0)
+      setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+      setStep('prompts-ready')
+    }
+  }
+
+  /* ── Step 5 → 6: Approve first frame, configure video ── */
+  const approveFirstFrame = () => {
+    // Sync seedance duration default to user's intended video duration
+    setSeedanceDuration(prev => prev === 'auto' ? videoDuration : prev)
+    setStep('video-config')
+  }
+
+  /* ── Step 6 → 8: Generate Seedance video ── */
+  const generateVideo = async () => {
+    if (!firstFrameUrl) return
+    setStep('video-loading')
+    setErrorMsg('')
+    startProgress(92, 3500)
+    try {
+      const neg = negativePrompt.trim()
+      const combinedPrompt = neg
+        ? `positivePrompt - ${positivePrompt} negativePrompt-${neg}`
+        : positivePrompt
+
       const res = await fetch('/api/seedance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl: composited,
-          videoPrompt: fullVideoPrompt,
-          negativePrompt: content?.negativePrompt || '',
-          duration: videoDuration,
-          visualStyle: videoStyle,
-          extraInstructions,
+          imageUrl: firstFrameUrl,
+          prompt: combinedPrompt,
+          resolution: seedanceResolution,
+          duration: seedanceDuration,
+          aspectRatio: seedanceAspect,
+          generateAudio: seedanceAudio,
         }),
       })
       const data = await res.json()
-      clearInterval(pollRef.current!)
-      if (!res.ok || data.error) throw new Error(data.error || 'Veo 3.1 generation failed')
-      setVideoProgress(100)
+      if (!res.ok || data.error) throw new Error(data.error || 'Video generation failed')
+      stopProgress()
       setVideoUrl(data.videoUrl)
-      setVideoStep('done')
+      setStep('video-done')
     } catch (e: unknown) {
-      clearInterval(pollRef.current!)
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      setVideoError(message)
-      setVideoStep('error')
-    }
-  }
-
-  /* ── Step 2b: Single Runway clip ── */
-  const generateSingleVideo = async (composited: string) => {
-    setVideoStep('submitting')
-    setVideoError('')
-    setVideoProgress(10)
-    setVideoStatusText('Sending to Runway ML...')
-
-    pollRef.current = setInterval(() => {
-      setVideoProgress(p => Math.min(p + 2, 90))
-      setVideoStatusText('Generating your video — this takes 1–3 minutes ☕')
-    }, 5000)
-
-    try {
-      const res = await fetch('/api/runway', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageDataUrl: composited,
-          videoPrompt: fullVideoPrompt,
-          duration: videoDuration,
-          visualStyle: videoStyle,
-          withAudio,
-          extraInstructions,
-        }),
-      })
-      const data = await res.json()
-      clearInterval(pollRef.current!)
-      if (!res.ok || data.error) throw new Error(data.error || 'Runway generation failed')
-      setVideoProgress(100)
-      setVideoUrl(data.videoUrl)
-      setVideoStep('done')
-    } catch (e: unknown) {
-      clearInterval(pollRef.current!)
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      setVideoError(message)
-      setVideoStep('error')
-    }
-  }
-
-  /* ── Step 2b: Multi-clip (3 parallel requests) ── */
-  const generateMultiClips = async (composited: string) => {
-    const segments = [
-      { clipIndex: 0, label: 'Clip 1 — Hook', focusText: content!.script.hook },
-      { clipIndex: 1, label: 'Clip 2 — Build-Up', focusText: content!.script.buildup },
-      { clipIndex: 2, label: 'Clip 3 — Reveal & CTA', focusText: content!.script.reveal + ' ' + content!.script.cta },
-    ]
-
-    setVideoStep('submitting')
-    setClipUrls([null, null, null])
-    setClipErrors([null, null, null])
-    setVideoProgress(10)
-    setVideoStatusText('Generating 3 clips in parallel — takes 2–5 minutes ☕')
-
-    pollRef.current = setInterval(() => {
-      setVideoProgress(p => Math.min(p + 1, 90))
-    }, 5000)
-
-    const promises = segments.map(({ clipIndex, focusText }) =>
-      fetch('/api/runway', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageDataUrl: composited,
-          videoPrompt: fullVideoPrompt,
-          duration: '10',
-          visualStyle: videoStyle,
-          withAudio: false,
-          clipIndex,
-          focusText,
-          extraInstructions,
-        }),
-      }).then(async r => {
-        const d = await r.json()
-        if (!r.ok || d.error) throw new Error(d.error || 'Runway failed')
-        return { clipIndex, videoUrl: d.videoUrl as string }
-      }).catch((e: Error) => ({ clipIndex, error: e.message }))
-    )
-
-    const results = await Promise.all(promises)
-    clearInterval(pollRef.current!)
-    setVideoProgress(100)
-
-    const urls: (string | null)[] = [null, null, null]
-    const errs: (string | null)[] = [null, null, null]
-    for (const r of results) {
-      if ('videoUrl' in r) urls[r.clipIndex] = r.videoUrl
-      else if ('error' in r) errs[r.clipIndex] = r.error
-    }
-    setClipUrls(urls)
-    setClipErrors(errs)
-    setVideoStep('done')
-  }
-
-  /* ── Step 2 entry ── */
-  const generateVideo = async () => {
-    if (!imageDataUrl || !content) return
-    const composited = await compositeBackground(imageDataUrl, background)
-    if (videoPlatform === 'seedance') {
-      generateSeedanceVideo(composited)
-    } else if (isMultiClip) {
-      generateMultiClips(composited)
-    } else {
-      generateSingleVideo(composited)
+      stopProgress(0)
+      setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+      setStep('video-config')
     }
   }
 
   const resetAll = () => {
-    if (pollRef.current) clearInterval(pollRef.current)
+    if (progressRef.current) clearInterval(progressRef.current)
+    setStep('upload')
+    setErrorMsg('')
+    setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setContent(null); setGenStep('idle'); setGenError('')
-    setBrandName(''); setPerfumeName('')
-    setVideoStep('idle'); setVideoUrl(''); setVideoError(''); setVideoProgress(5)
-    setClipUrls([null, null, null]); setClipErrors([null, null, null])
-    setExtraInstructions('')
-    setWithMusic(false); setWithNarration(false); setVideoDetails('')
-    setVideoPlatform('runway')
-    setPromptMode('ai'); setCustomScene(''); setCustomNarratorEnabled(false); setCustomNarratorText(''); setCustomMusicEnabled(false); setCustomMusicText('')
+    setBrandName(''); setPerfumeName(''); setGender('women')
+    setVideoDuration('8'); setCustomScene('')
+    setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
+    setFirstFrameUrl('')
+    setSeedanceResolution('720p'); setSeedanceDuration('auto')
+    setSeedanceAspect('9:16'); setSeedanceAudio(true)
+    setVideoUrl('')
   }
 
-  const scriptCopy = content
-    ? `HOOK (${timing.hook}): ${content.script.hook}\n\nBUILD-UP (${timing.buildup}): ${content.script.buildup}\n\nREVEAL (${timing.reveal}): ${content.script.reveal}\n\nCTA (${timing.cta}): ${content.script.cta}`
-    : ''
-
-  // Video prompt — hard cap 1200 chars, narration word-limited to fit duration
-  const fullVideoPrompt = content ? (() => {
-    const parts: string[] = []
-    if (promptMode === 'custom') {
-      // Custom: elaborated videoPrompt is the main content (up to 600 chars)
-      parts.push(content.videoPrompt.slice(0, 600))
-    } else {
-      // AI mode: short cinematic desc + per-scene cues
-      parts.push(content.videoPrompt.slice(0, 180))
-      if (content.videoScenes) {
-        const s = content.videoScenes
-        parts.push(`${timing.hook}: ${s.hook.slice(0, 55)}. ${timing.buildup}: ${s.buildup.slice(0, 65)}. ${timing.reveal}: ${s.reveal.slice(0, 65)}. ${timing.cta}: ${s.cta.slice(0, 45)}`)
-      }
-    }
-    if (content.narrationScript) {
-      const n = content.narrationScript
-      const maxWords = Math.round(dur * 2.5)
-      const words = `${n.hook} ${n.buildup} ${n.reveal} ${n.cta}`.trim().split(/\s+/).slice(0, maxWords).join(' ')
-      parts.push(`Narrator: "${words}"`)
-    }
-    if (content.musicSuggestion) {
-      parts.push(`Audio: ${content.musicSuggestion.slice(0, 80)}`)
-    }
-    return parts.join('. ').slice(0, 1200)
-  })() : ''
-
-  const durationOpts = videoPlatform === 'seedance' ? DURATION_OPTIONS_VEO : withAudio ? DURATION_OPTIONS_AUDIO : DURATION_OPTIONS
+  /* ── Render ──────────────────────────────────────────────── */
+  const showInitialForm = step === 'upload'
+  const showPromptsLoading = step === 'prompts-loading'
+  const showPromptsReady = step === 'prompts-ready' || step === 'frame-loading'
+  const showFrameLoading = step === 'frame-loading'
+  const showFrameReady = step === 'frame-ready'
+  const showVideoConfig = step === 'video-config' || step === 'video-loading'
+  const showVideoLoading = step === 'video-loading'
+  const showVideoDone = step === 'video-done'
 
   return (
     <main className={styles.main}>
@@ -571,19 +369,18 @@ export default function Home() {
 
         {/* ── Header ── */}
         <header className={styles.header}>
-          <div className={styles.logoTag}>AI Content Agent</div>
+          <div className={styles.logoTag}>AI Perfume Video Studio</div>
           <h1 className={styles.h1}>Scent &amp; <em>Scroll</em></h1>
-          <p className={styles.subtitle}>TikTok Content Studio for Perfume Brands</p>
+          <p className={styles.subtitle}>Image → Cinematic Video, powered by Seedance 2.0</p>
           <div className={styles.badgeRow}>
-            <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Powered by Claude AI</span>
-            <span className={`${styles.badge} ${styles.badgeRunway}`}>Runway ML + Veo 3.1 Fast</span>
+            <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Prompts by Claude</span>
+            <span className={`${styles.badge} ${styles.badgeRunway}`}>Seedance 2.0 · Nano Banana</span>
           </div>
         </header>
 
-        {/* ── Upload + Form (only shown before results) ── */}
-        {genStep !== 'done' && (
+        {/* ── Step 1: Upload + form ── */}
+        {showInitialForm && (
           <>
-            {/* Upload zone */}
             <div
               className={`${styles.uploadZone} ${dragging ? styles.uploadZoneDragging : ''} ${imageBase64 ? styles.uploadZoneHasImage : ''}`}
               onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -622,52 +419,6 @@ export default function Home() {
               />
             </div>
 
-            {/* Platform selector */}
-            <div className={styles.platformRow}>
-              <div className={styles.optionLabel}>Video Platform</div>
-              <div className={styles.platformToggle}>
-                <button
-                  type="button"
-                  className={`${styles.platformBtn} ${videoPlatform === 'runway' ? styles.platformBtnActive : ''}`}
-                  onClick={() => { setVideoPlatform('runway') }}
-                >
-                  Runway ML
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.platformBtn} ${videoPlatform === 'seedance' ? styles.platformBtnActiveSeedance : ''}`}
-                  onClick={() => { setVideoPlatform('seedance'); setWithAudio(false); if (!['4','6','8'].includes(videoDuration)) setVideoDuration('8') }}
-                >
-                  Veo 3.1 Fast
-                </button>
-              </div>
-              {videoPlatform === 'seedance' && (
-                <p className={styles.platformNote}>Up to 8s portrait video with native AI audio</p>
-              )}
-            </div>
-
-            {/* Content mode switcher */}
-            <div className={styles.platformRow}>
-              <div className={styles.optionLabel}>Content Mode</div>
-              <div className={styles.platformToggle}>
-                <button
-                  type="button"
-                  className={`${styles.platformBtn} ${promptMode === 'ai' ? styles.platformBtnActive : ''}`}
-                  onClick={() => setPromptMode('ai')}
-                >
-                  AI-Generated
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.platformBtn} ${promptMode === 'custom' ? styles.platformBtnActiveSeedance : ''}`}
-                  onClick={() => setPromptMode('custom')}
-                >
-                  Custom Prompt
-                </button>
-              </div>
-            </div>
-
-            {/* Brand + perfume — always shown */}
             <div className={styles.optionsGrid}>
               <OptionCard label="Brand Name">
                 <StyledInput value={brandName} onChange={setBrandName} placeholder="e.g. Chanel, Dior, Your Brand..." />
@@ -675,341 +426,200 @@ export default function Home() {
               <OptionCard label="Perfume Name">
                 <StyledInput value={perfumeName} onChange={setPerfumeName} placeholder="e.g. Midnight Oud, No. 5..." />
               </OptionCard>
+              <OptionCard label="Gender">
+                <StyledSelect value={gender} onChange={setGender} options={GENDERS} />
+              </OptionCard>
+              <OptionCard label="Video Duration">
+                <StyledSelect value={videoDuration} onChange={setVideoDuration} options={VIDEO_DURATIONS} />
+              </OptionCard>
             </div>
 
-            {promptMode === 'ai' ? (
-              <>
-                {/* AI mode options */}
-                <div className={styles.optionsGrid}>
-                  <OptionCard label="Content Style">
-                    <StyledSelect value={contentStyle} onChange={setContentStyle} options={CONTENT_STYLES} />
-                  </OptionCard>
-                  <OptionCard label="Target Audience">
-                    <StyledSelect value={audience} onChange={setAudience} options={AUDIENCES} />
-                  </OptionCard>
-                  <OptionCard label="Call to Action">
-                    <StyledSelect value={cta} onChange={setCta} options={CTAS} />
-                  </OptionCard>
-                  <OptionCard label="Video Duration">
-                    <StyledSelect value={videoDuration} onChange={v => {
-                      setVideoDuration(v)
-                      if (v === '30') setWithAudio(false)
-                    }} options={durationOpts} />
-                  </OptionCard>
-                </div>
-                <div className={styles.extraInstructionsWrap}>
-                  <div className={styles.optionLabel}>Video Details <span className={styles.optionalTag}>(optional)</span></div>
-                  <textarea
-                    className={styles.textarea}
-                    value={videoDetails}
-                    onChange={e => setVideoDetails(e.target.value)}
-                    placeholder="e.g. It's a limited edition summer release, target brides, emphasise the floral top notes..."
-                    rows={2}
-                  />
-                </div>
-                <div className={styles.toggleGroup}>
-                  <label className={styles.audioToggle}>
-                    <input type="checkbox" checked={withNarration} onChange={e => setWithNarration(e.target.checked)} />
-                    <span className={styles.audioToggleLabel}>🎙 Add video narration script</span>
-                  </label>
-                  <label className={styles.audioToggle}>
-                    <input type="checkbox" checked={withMusic} onChange={e => setWithMusic(e.target.checked)} />
-                    <span className={styles.audioToggleLabel}>🎵 Add background music suggestion</span>
-                  </label>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Custom prompt mode */}
-                <div className={styles.optionsGrid}>
-                  <OptionCard label="Video Duration">
-                    <StyledSelect value={videoDuration} onChange={v => setVideoDuration(v)} options={durationOpts} />
-                  </OptionCard>
-                </div>
-                <div className={styles.extraInstructionsWrap}>
-                  <div className={styles.optionLabel}>Scene Description</div>
-                  <textarea
-                    className={styles.textarea}
-                    value={customScene}
-                    onChange={e => setCustomScene(e.target.value)}
-                    placeholder="Describe the scene, mood, and visual concept you want for the video..."
-                    rows={3}
-                  />
-                </div>
-                <div className={styles.toggleGroup}>
-                  <label className={styles.audioToggle}>
-                    <input type="checkbox" checked={customNarratorEnabled} onChange={e => setCustomNarratorEnabled(e.target.checked)} />
-                    <span className={styles.audioToggleLabel}>🎙 Add narrator script</span>
-                  </label>
-                  {customNarratorEnabled && (
-                    <textarea
-                      className={styles.textarea}
-                      value={customNarratorText}
-                      onChange={e => setCustomNarratorText(e.target.value)}
-                      placeholder="Optional: describe voice style or write specific lines. Leave empty to let AI generate narrator script from your concept."
-                      rows={2}
-                    />
-                  )}
-                  <label className={styles.audioToggle}>
-                    <input type="checkbox" checked={customMusicEnabled} onChange={e => setCustomMusicEnabled(e.target.checked)} />
-                    <span className={styles.audioToggleLabel}>🎵 Add background music</span>
-                  </label>
-                  {customMusicEnabled && (
-                    <textarea
-                      className={styles.textarea}
-                      value={customMusicText}
-                      onChange={e => setCustomMusicText(e.target.value)}
-                      placeholder="Optional: describe genre, mood, BPM, or specific tracks. Leave empty to let AI suggest music that fits your concept."
-                      rows={2}
-                    />
-                  )}
-                </div>
-              </>
-            )}
+            <div className={styles.extraInstructionsWrap}>
+              <div className={styles.optionLabel}>Scene Description <span className={styles.optionalTag}>(optional)</span></div>
+              <textarea
+                className={styles.textarea}
+                value={customScene}
+                onChange={e => setCustomScene(e.target.value)}
+                placeholder="Describe the scene you want — e.g. golden hour on a windswept cliff, slow dolly toward the bottle, floating silk... Leave empty to let the AI invent one."
+                rows={3}
+              />
+            </div>
 
-            {/* Audio toggle — Runway only, AI mode only */}
-            {promptMode === 'ai' && videoPlatform === 'runway' && videoDuration !== '30' && (
-              <div className={styles.audioToggleRow}>
-                <label className={styles.audioToggle}>
-                  <input type="checkbox" checked={withAudio} onChange={e => {
-                      setWithAudio(e.target.checked)
-                      if (e.target.checked && !['4','6','8'].includes(videoDuration)) setVideoDuration('8')
-                    }} />
-                  <span className={styles.audioToggleLabel}>🔊 Generate with AI audio (uses Veo 3.1 Fast model — 4/6/8s only)</span>
-                </label>
-              </div>
-            )}
-
-
-            {genError && <div className={styles.errorMsg}>⚠ {genError}</div>}
+            {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
 
             <button
               className={styles.generateBtn}
-              disabled={!imageBase64 || genStep === 'loading'}
-              onClick={generateContent}
+              disabled={!imageBase64}
+              onClick={generatePrompts}
             >
-              {genStep === 'loading' ? (
-                <span className={styles.btnLoading}>
-                  <span className={`${styles.spinner} spin`} /> Generating...
-                </span>
-              ) : '✦ Generate TikTok Content'}
+              ✦ Generate AI Prompts
             </button>
           </>
         )}
 
-        {/* ── Loading spinner ── */}
-        {genStep === 'loading' && (
+        {/* ── Step 2: Prompts loading ── */}
+        {showPromptsLoading && (
           <div className={styles.loadingCenter}>
             <div className={`${styles.ring} spin`} />
-            <p className={styles.loadingText}>Crafting your content...</p>
+            <p className={styles.loadingText}>Claude is crafting your prompts...</p>
           </div>
         )}
 
-        {/* ── Results ── */}
-        {genStep === 'done' && content && (
+        {/* ── Step 3: Prompts ready + first-frame loading overlay ── */}
+        {showPromptsReady && (
           <div className={styles.results}>
             <div className={styles.resultsHeader}>
               <h2 className={styles.resultsTitle}>
-                Your <em>Content</em>
-                {(content.brandName || brandName) && (
-                  <span className={styles.resultsBrand}> — {content.brandName || brandName}</span>
+                Your <em>AI Prompts</em>
+                {(brandName || perfumeName) && (
+                  <span className={styles.resultsBrand}> — {[brandName, perfumeName].filter(Boolean).join(' ')}</span>
                 )}
               </h2>
               <button className={styles.newBtn} onClick={resetAll}>↩ Start Over</button>
             </div>
 
-            <ContentCard icon="🔮" iconBg="linear-gradient(135deg,rgba(255,200,0,0.2),rgba(255,100,0,0.2))"
-              title="Perfume Vibe Analysis" copyText={content.vibeAnalysis}>
-              <p className={styles.bodyText}>{content.vibeAnalysis}</p>
-            </ContentCard>
+            <p className={styles.platformNote} style={{ marginBottom: 16 }}>
+              Edit any prompt below before generating the first frame.
+            </p>
 
-            <ContentCard icon="⚡" iconBg="linear-gradient(135deg,rgba(255,200,0,0.2),rgba(255,100,0,0.2))"
-              title="Scroll-Stopping Hook" copyText={content.hook}>
-              <p className={styles.hookText}>"{content.hook}"</p>
-            </ContentCard>
+            <PromptCard title="Positive Prompt" icon="✦" value={positivePrompt} onChange={setPositivePrompt} />
+            <PromptCard title="Negative Prompt" icon="✕" value={negativePrompt} onChange={setNegativePrompt} />
+            <PromptCard title="First-Frame Image Prompt" icon="🖼" value={firstFramePrompt} onChange={setFirstFramePrompt} />
 
-            <ContentCard icon="🎬" iconBg="linear-gradient(135deg,rgba(255,45,85,0.2),rgba(105,201,208,0.2))"
-              title="Video Script" copyText={scriptCopy}>
-              {([
-                [`Hook (${timing.hook})`, content.script.hook],
-                [`Build-Up (${timing.buildup})`, content.script.buildup],
-                [`Reveal (${timing.reveal})`, content.script.reveal],
-                [`CTA (${timing.cta})`, content.script.cta],
-              ] as [string, string][]).map(([label, text]) => (
-                <div key={label} className={styles.scriptSection}>
-                  <div className={styles.scriptLabel}>{label}</div>
-                  <p className={styles.bodyText}>{text}</p>
+            <div className={styles.optionsGrid}>
+              <OptionCard label="First-Frame Aspect Ratio">
+                <StyledSelect value={seedanceAspect} onChange={setSeedanceAspect} options={ASPECTS} />
+              </OptionCard>
+            </div>
+
+            {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
+
+            {showFrameLoading ? (
+              <div className={styles.videoStatusCard}>
+                <div className={`${styles.videoRing} spin`} />
+                <p className={styles.videoStatusTitle}>Generating first frame...</p>
+                <p className={styles.videoStatusSub}>Nano Banana is editing your bottle into the scene — 10–30 seconds</p>
+                <div className={styles.progressBar}>
+                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                 </div>
-              ))}
-            </ContentCard>
-
-            {content.narrationScript && (
-              <ContentCard icon="🎙" iconBg="linear-gradient(135deg,rgba(105,201,208,0.2),rgba(179,136,255,0.2))"
-                title="Video Narration Script"
-                copyText={`HOOK: ${content.narrationScript.hook}\n\nBUILD-UP: ${content.narrationScript.buildup}\n\nREVEAL: ${content.narrationScript.reveal}\n\nCTA: ${content.narrationScript.cta}`}>
-                {([
-                  [`Hook (${timing.hook})`, content.narrationScript.hook],
-                  [`Build-Up (${timing.buildup})`, content.narrationScript.buildup],
-                  [`Reveal (${timing.reveal})`, content.narrationScript.reveal],
-                  [`CTA (${timing.cta})`, content.narrationScript.cta],
-                ] as [string, string][]).map(([label, text]) => (
-                  <div key={label} className={styles.scriptSection}>
-                    <div className={styles.scriptLabel}>{label}</div>
-                    <p className={styles.bodyText}>{text}</p>
-                  </div>
-                ))}
-              </ContentCard>
-            )}
-
-            {content.musicSuggestion && (
-              <ContentCard icon="🎵" iconBg="linear-gradient(135deg,rgba(201,168,76,0.2),rgba(255,45,85,0.1))"
-                title="Background Music Suggestion" copyText={content.musicSuggestion}>
-                <p className={styles.bodyText}>{content.musicSuggestion}</p>
-              </ContentCard>
-            )}
-
-            <ContentCard icon="✍️" iconBg="linear-gradient(135deg,rgba(179,136,255,0.2),rgba(105,201,208,0.2))"
-              title="TikTok Caption" copyText={content.caption}>
-              <p className={styles.bodyText}>{content.caption}</p>
-            </ContentCard>
-
-            <ContentCard icon="#" iconBg="rgba(201,168,76,0.15)"
-              title="Hashtags" copyText={content.hashtags.map(h => '#' + h).join(' ')}>
-              <div className={styles.hashtagCloud}>
-                {content.hashtags.map(h => (
-                  <span key={h} className={styles.hashtagPill}>#{h}</span>
-                ))}
               </div>
-            </ContentCard>
-
-            <ContentCard icon="💡" iconBg="linear-gradient(135deg,rgba(179,136,255,0.2),rgba(105,201,208,0.2))"
-              title="Pro Filming Tips" copyText={content.tips.join('\n')}>
-              <div className={styles.tipsBox}>
-                {content.tips.map((t, i) => (
-                  <div key={i} className={styles.tipRow}>
-                    <span className={styles.tipArrow}>→</span>
-                    <p className={styles.tipText}>{t}</p>
-                  </div>
-                ))}
-              </div>
-            </ContentCard>
-
-            {/* Elaborated video prompt — custom mode only */}
-            {promptMode === 'custom' && content.videoPrompt && (
-              <ContentCard icon="🎬" iconBg="linear-gradient(135deg,rgba(105,201,208,0.2),rgba(179,136,255,0.2))"
-                title="Elaborated Video Prompt" copyText={content.videoPrompt + (content.negativePrompt ? `\n\nNegative: ${content.negativePrompt}` : '')}>
-                <p className={styles.bodyText}>{content.videoPrompt}</p>
-                {content.negativePrompt && (
-                  <div className={styles.scriptSection} style={{ marginTop: '0.75rem' }}>
-                    <div className={styles.scriptLabel}>Negative Prompt</div>
-                    <p className={styles.bodyText}>{content.negativePrompt}</p>
-                  </div>
-                )}
-              </ContentCard>
+            ) : (
+              <button
+                className={styles.generateSeedanceBtn}
+                disabled={!positivePrompt || !firstFramePrompt}
+                onClick={generateFirstFrame}
+              >
+                Generate First Frame Image
+              </button>
             )}
+          </div>
+        )}
 
-            {/* ── Video section ── */}
+        {/* ── Step 5: First frame ready — approve or regenerate ── */}
+        {showFrameReady && (
+          <div className={styles.results}>
+            <div className={styles.resultsHeader}>
+              <h2 className={styles.resultsTitle}>Your <em>First Frame</em></h2>
+              <button className={styles.newBtn} onClick={resetAll}>↩ Start Over</button>
+            </div>
+
+            <div className={styles.videoResultCard}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={firstFrameUrl} alt="Generated first frame" className={styles.videoEl} style={{ objectFit: 'contain', background: '#000' }} />
+              <div className={styles.videoActions}>
+                <button className={styles.regenBtn} onClick={generateFirstFrame}>↻ Regenerate</button>
+                <a href={firstFrameUrl} target="_blank" rel="noreferrer" download="first-frame.jpg" className={styles.dlBtn}>⬇ Download</a>
+              </div>
+            </div>
+
+            {errorMsg && <div className={styles.errorMsg} style={{ marginTop: 16 }}>⚠ {errorMsg}</div>}
+
             <div className={styles.videoDivider}>
               <div className={styles.dividerLine} />
-              <span className={styles.dividerLabel}>
-                {videoPlatform === 'seedance' ? 'AI Video via Veo 3.1 Fast' : 'AI Video via Runway ML'}
-              </span>
+              <span className={styles.dividerLabel}>Approve to continue</span>
               <div className={styles.dividerLine} />
             </div>
 
-            {/* Video controls */}
-            {(videoStep === 'idle' || videoStep === 'error') && (
-              <>
-                <div className={styles.optionsGrid}>
-                  <OptionCard label="Visual Style">
-                    <StyledSelect value={videoStyle} onChange={setVideoStyle} options={VIDEO_STYLES} />
-                  </OptionCard>
-                  <OptionCard label="Background">
-                    <StyledSelect value={background} onChange={setBackground} options={BACKGROUNDS} />
-                  </OptionCard>
-                </div>
+            <button className={styles.generateSeedanceBtn} onClick={approveFirstFrame}>
+              ✓ Approve & Configure Video
+            </button>
+            <button className={styles.newBtn} style={{ width: '100%', padding: '12px' }} onClick={() => setStep('prompts-ready')}>
+              ← Back to prompts
+            </button>
+          </div>
+        )}
 
-                {/* Extra instructions */}
-                <div className={styles.extraInstructionsWrap}>
-                  <div className={styles.optionLabel}>Additional Video Instructions <span className={styles.optionalTag}>(optional)</span></div>
-                  <textarea
-                    className={styles.textarea}
-                    value={extraInstructions}
-                    onChange={e => setExtraInstructions(e.target.value)}
-                    placeholder="e.g. Add slow-motion water droplets falling on the bottle, golden particles floating, close-up on the cap..."
-                    rows={3}
-                  />
-                </div>
+        {/* ── Step 6: Video config + loading ── */}
+        {showVideoConfig && (
+          <div className={styles.results}>
+            <div className={styles.resultsHeader}>
+              <h2 className={styles.resultsTitle}>Configure <em>Seedance 2.0</em></h2>
+              <button className={styles.newBtn} onClick={resetAll}>↩ Start Over</button>
+            </div>
 
-                <div className={styles.videoMeta}>
-                  {videoPlatform === 'seedance' ? (
-                    <>
-                      <span>Duration: <strong>{Math.min(parseInt(videoDuration)||8, 8)}s</strong></span>
-                      <span className={styles.audioBadge}>Native AI Audio</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Duration: <strong>{isMultiClip ? '3 × 10s clips' : videoDuration + 's'}</strong></span>
-                      {withAudio && <span className={styles.audioBadge}>AI Audio</span>}
-                      {isMultiClip && <span className={styles.multiClipNote}>3 parallel generations • stitch in TikTok editor</span>}
-                    </>
-                  )}
-                </div>
+            <div className={styles.videoResultCard} style={{ marginBottom: 20 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={firstFrameUrl} alt="First frame" className={styles.videoEl} style={{ objectFit: 'contain', background: '#000', maxHeight: 360 }} />
+            </div>
 
-                {videoStep === 'error' && <div className={styles.errorMsg}>⚠ {videoError} — please try again.</div>}
-                <button
-                  className={videoPlatform === 'seedance' ? styles.generateSeedanceBtn : styles.generateVideoBtn}
-                  onClick={generateVideo}
-                >
-                  {videoPlatform === 'seedance' ? 'Generate Video with Veo 3.1 Fast' : 'Generate TikTok Video with Runway'}
-                </button>
-              </>
-            )}
+            <div className={styles.optionsGrid}>
+              <OptionCard label="Resolution">
+                <StyledSelect value={seedanceResolution} onChange={setSeedanceResolution} options={RESOLUTIONS} />
+              </OptionCard>
+              <OptionCard label="Duration">
+                <StyledSelect value={seedanceDuration} onChange={setSeedanceDuration} options={SEEDANCE_DURATIONS} />
+              </OptionCard>
+              <OptionCard label="Aspect Ratio">
+                <StyledSelect value={seedanceAspect} onChange={setSeedanceAspect} options={ASPECTS} />
+              </OptionCard>
+              <OptionCard label="Audio">
+                <label className={styles.audioToggle} style={{ marginTop: 4 }}>
+                  <input type="checkbox" checked={seedanceAudio} onChange={e => setSeedanceAudio(e.target.checked)} />
+                  <span className={styles.audioToggleLabel}>🔊 Generate synchronized audio</span>
+                </label>
+              </OptionCard>
+            </div>
 
-            {/* Generating */}
-            {videoStep === 'submitting' && (
+            {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
+
+            {showVideoLoading ? (
               <div className={styles.videoStatusCard}>
                 <div className={`${styles.videoRing} spin`} />
-                <p className={styles.videoStatusTitle}>
-                  {isMultiClip ? 'Generating 3 clips in parallel...' : 'Generating your video...'}
-                </p>
-                <p className={styles.videoStatusSub}>{videoStatusText}</p>
+                <p className={styles.videoStatusTitle}>Generating your video...</p>
+                <p className={styles.videoStatusSub}>Seedance 2.0 is rendering — typically 2–5 minutes ☕</p>
                 <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${videoProgress}%` }} />
+                  <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                 </div>
-                <p className={styles.progressLabel}>
-                  {isMultiClip ? 'Each clip takes 1–3 minutes ☕' : 'This takes 1–3 minutes ☕'}
-                </p>
+                <p className={styles.progressLabel}>{progress}%</p>
               </div>
+            ) : (
+              <button className={styles.generateSeedanceBtn} onClick={generateVideo}>
+                Generate Video with Seedance 2.0
+              </button>
             )}
+            {!showVideoLoading && (
+              <button className={styles.newBtn} style={{ width: '100%', padding: '12px' }} onClick={() => setStep('frame-ready')}>
+                ← Back to first frame
+              </button>
+            )}
+          </div>
+        )}
 
-            {/* Single clip done */}
-            {videoStep === 'done' && !isMultiClip && videoUrl && (
-              <div className={styles.videoResultCard}>
-                <video src={videoUrl} controls playsInline className={styles.videoEl} />
-                <div className={styles.videoActions}>
-                  <a href={videoUrl} download="tiktok-perfume-video.mp4" className={styles.dlBtn}>
-                    ⬇ Download Video
-                  </a>
-                  <button className={styles.regenBtn} onClick={() => setVideoStep('idle')}>↩ Regenerate</button>
-                </div>
-              </div>
-            )}
+        {/* ── Step 8: Video done ── */}
+        {showVideoDone && videoUrl && (
+          <div className={styles.results}>
+            <div className={styles.resultsHeader}>
+              <h2 className={styles.resultsTitle}>Your <em>Video</em></h2>
+              <button className={styles.newBtn} onClick={resetAll}>↩ Start Over</button>
+            </div>
 
-            {/* Multi-clip done */}
-            {videoStep === 'done' && isMultiClip && (
-              <div className={styles.multiClipGrid}>
-                {(['Hook', 'Build-Up', 'Reveal & CTA'] as const).map((label, i) => (
-                  <div key={i}>
-                    <ClipCard label={`Clip ${i + 1} — ${label}`} url={clipUrls[i]} />
-                    {clipErrors[i] && <div className={styles.errorMsg}>⚠ {clipErrors[i]}</div>}
-                  </div>
-                ))}
-                <button className={styles.regenBtn} onClick={() => { setVideoStep('idle'); setClipUrls([null,null,null]) }}>
-                  ↩ Regenerate All
-                </button>
+            <div className={styles.videoResultCard}>
+              <video src={videoUrl} controls playsInline className={styles.videoEl} />
+              <div className={styles.videoActions}>
+                <a href={videoUrl} download="perfume-video.mp4" className={styles.dlBtn}>⬇ Download Video</a>
+                <button className={styles.regenBtn} onClick={() => setStep('video-config')}>↻ Regenerate</button>
               </div>
-            )}
+            </div>
           </div>
         )}
 

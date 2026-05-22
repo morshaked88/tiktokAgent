@@ -1,8 +1,8 @@
-// File: /Users/devdev/Downloads/scent-scroll/app/api/generate/route.ts
-import * as entry from '../../../../../app/api/generate/route.js'
+// File: /Users/devdev/Downloads/scent-scroll/app/api/seedance/route.ts
+import * as entry from '../../../../../app/api/seedance/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../app/api/generate/route.js')
+type TEntry = typeof import('../../../../../app/api/seedance/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{
