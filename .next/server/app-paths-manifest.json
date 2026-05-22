@@ -1,5 +1,4 @@
 {
   "/api/seedance/route": "app/api/seedance/route.js",
-  "/page": "app/page.js",
-  "/api/first-frame/route": "app/api/first-frame/route.js"
+  "/page": "app/page.js"
 }

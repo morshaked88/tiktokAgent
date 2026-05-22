@@ -35,17 +35,29 @@ The video should be ${dur} seconds and the cinematic should not be related to th
 I need positive prompt, negative prompt and a prompt for an image that will be the first frame of the video.
 ${sceneLine}
 
-Guidelines:
-- positivePrompt: detailed cinematic image-to-video prompt describing camera motion, lighting, atmosphere, action and mood. Max 600 chars. Hyper-realistic, high-end commercial quality. Keep product integrity (label visible, no shape distortion).
-- negativePrompt: comma-separated things to avoid (distortions, flickering, blurry text, shape changes, watermarks, extra fingers, low quality). Max 200 chars.
-- firstFramePrompt: a prompt for an image generator that edits the uploaded perfume bottle photo into the opening frame of the video. Describe the new background, lighting, props, mood — but instruct that the perfume bottle itself must remain identical to the reference (same shape, label, proportions). Max 500 chars.
+Guidelines for positivePrompt:
+Write a single flowing paragraph that describes a COMPLETE STORY arc across ${dur} seconds — not a static scene. The prompt must include three phases:
+  OPENING (first ~20% of the video): establish the scene — where are we, what mood, what light. Camera starts at a specific position (e.g. extreme close-up of a texture, a wide establishing shot, a detail shot of an element in the scene).
+  BUILD (middle ~60%): the world comes alive around the bottle — something moves, changes, or reveals. Use specific, physical camera movement (slow push-in, orbit, crane rise, tilt-up, whip pan) and describe what changes in the environment (light shifts, elements move, atmosphere thickens). The perfume bottle should be discovered or revealed naturally within the story.
+  CLIMAX & END (final ~20%): the camera arrives at a definitive hero shot of the bottle — close, crisp, dramatic — and the motion settles. Describe the exact final frame (e.g. "ending on a tight hero shot of the bottle, label sharp, golden light raking across the cap, scene holds").
+Additional rules:
+  - Max 700 chars. Hyper-realistic, high-end luxury commercial quality.
+  - Keep product integrity throughout: label always legible, bottle shape never distorts.
+  - No spoken words or subtitles in the prompt.
+  - Write camera moves as verbs in present tense ("camera slowly pushes in", "crane rises revealing", "arc left orbiting").
+
+Guidelines for negativePrompt:
+Comma-separated list of things to avoid. Max 200 chars. Include: label distortion, text blur, bottle shape change, flickering, morphing, watermark, low resolution, extra objects, cartoonish, jitter.
+
+Guidelines for firstFramePrompt:
+Describe ONLY the opening frame of the video — the exact scene, lighting, composition, and mood that matches the OPENING phase of the positivePrompt. The perfume bottle must remain identical to the reference photo (same shape, label, proportions, colors). Max 500 chars.
 
 Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
 {"positivePrompt": "...", "negativePrompt": "...", "firstFramePrompt": "..."}`
 
     const body = JSON.stringify({
       model: 'claude-opus-4-6',
-      max_tokens: 1200,
+      max_tokens: 1800,
       messages: [{
         role: 'user',
         content: [
