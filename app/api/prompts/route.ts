@@ -54,7 +54,15 @@ Guidelines for negativePrompt:
 Comma-separated list of things to avoid. Max 250 chars. MUST include all of these: label text distortion, letter morphing, text smearing, blurry label, changed words on bottle, logo warping, text flickering, letter substitution, bottle shape change, watermark, low resolution, cartoonish, jitter, extra objects.
 
 Guidelines for firstFramePrompt:
-Describe ONLY the opening frame of the video — the exact scene, lighting, composition, and mood that matches the OPENING phase of the positivePrompt. The perfume bottle must remain identical to the reference photo (same shape, label, proportions, colors). Max 500 chars.
+Describe the opening frame of the video. STRICT BOTTLE PLACEMENT RULES — never break these:
+  - The perfume bottle MUST be the primary subject, placed in the CENTER-FOREGROUND of the frame.
+  - The bottle MUST be SHARP, IN FOCUS, and fully visible — no blur, no bokeh on the bottle itself.
+  - The bottle MUST occupy at least 40% of the frame height — never small, never pushed to the background.
+  - The label must face the camera at a 3/4 angle — readable, crisp, fully visible.
+  - Background elements (scenery, props, lighting) must be BEHIND the bottle and can be soft/bokeh, but the bottle itself is always tack-sharp in the foreground.
+  - The bottle must remain identical to the reference photo (same shape, label, proportions, colors).
+  - Include the instruction: "perfume bottle sharp in foreground, label fully legible, center frame, background softly blurred behind it".
+Max 600 chars.
 
 Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
 {"positivePrompt": "...", "negativePrompt": "...", "firstFramePrompt": "..."}`
