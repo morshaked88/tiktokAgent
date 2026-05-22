@@ -174,6 +174,7 @@ export default function Home() {
 
   // Final video
   const [videoUrl, setVideoUrl] = useState('')
+  const [audioDropped, setAudioDropped] = useState(false)
 
   useEffect(() => () => {
     if (progressRef.current) clearInterval(progressRef.current)
@@ -330,6 +331,7 @@ export default function Home() {
       if (!res.ok || data.error) throw new Error(data.error || 'Video generation failed')
       stopProgress()
       setVideoUrl(data.videoUrl)
+      setAudioDropped(seedanceAudio && data.audioUsed === false)
       setStep('video-done')
     } catch (e: unknown) {
       stopProgress(0)
@@ -613,6 +615,11 @@ export default function Home() {
               <button className={styles.newBtn} onClick={resetAll}>↩ Start Over</button>
             </div>
 
+            {audioDropped && (
+              <div className={styles.errorMsg} style={{ marginBottom: '1rem' }}>
+                ⚠ Audio was disabled — fal.ai flagged the generated audio as sensitive content. Video generated without audio.
+              </div>
+            )}
             <div className={styles.videoResultCard}>
               <video src={videoUrl} controls playsInline className={styles.videoEl} />
               <div className={styles.videoActions}>

@@ -37,20 +37,39 @@ export async function POST(req: NextRequest) {
       if (Number.isFinite(n) && n >= 4 && n <= 15) dur = String(n)
     }
 
-    const result = await fal.subscribe('bytedance/seedance-2.0/image-to-video', {
-      input: {
-        image_url: imageUrl,
-        prompt: finalPrompt,
-        resolution: res,
-        duration: dur,
-        aspect_ratio: ar,
-        generate_audio: generateAudio !== false,
-      },
-    })
+    const baseInput = {
+      image_url: imageUrl,
+      prompt: finalPrompt,
+      resolution: res,
+      duration: dur,
+      aspect_ratio: ar,
+    }
+
+    const runWithAudio = async (withAudio: boolean) =>
+      fal.subscribe('bytedance/seedance-2.0/image-to-video', {
+        input: { ...baseInput, generate_audio: withAudio },
+      })
+
+    let result: Awaited<ReturnType<typeof runWithAudio>>
+    let audioUsed = generateAudio !== false
+
+    try {
+      result = await runWithAudio(audioUsed)
+    } catch (firstErr: unknown) {
+      const msg = firstErr instanceof Error ? firstErr.message : String(firstErr)
+      const isSensitiveAudio = msg.toLowerCase().includes('sensitive content') || msg.includes('422')
+      if (isSensitiveAudio && audioUsed) {
+        // Audio triggered content filter — retry silently without audio
+        audioUsed = false
+        result = await runWithAudio(false)
+      } else {
+        throw firstErr
+      }
+    }
 
     const videoUrl = (result.data as { video?: { url: string } })?.video?.url
     if (!videoUrl) throw new Error('Seedance returned no video URL')
-    return NextResponse.json({ videoUrl })
+    return NextResponse.json({ videoUrl, audioUsed })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
     console.error('Seedance 2.0 error:', message)
