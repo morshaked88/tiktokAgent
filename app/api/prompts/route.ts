@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
       brandName,
       perfumeName,
       gender,
+      parfumType,
       videoDuration,
       customScene,
     } = await req.json()
@@ -23,7 +24,9 @@ export async function POST(req: NextRequest) {
     const dur = parseInt(videoDuration) || 8
     const scene = (customScene || '').trim()
 
+    const type = (parfumType || 'PARFUM').trim().toUpperCase()
     const productLabel = [brand, perfume].filter(Boolean).join(' — ') || 'the perfume on the bottle'
+    const labelText = [brand, perfume, type].filter(Boolean).join(' · ')
 
     const sceneLine = scene
       ? `Scene the creator wants: "${scene}"`
@@ -36,7 +39,11 @@ I need positive prompt, negative prompt and a prompt for an image that will be t
 ${sceneLine}
 
 CRITICAL LABEL PRESERVATION RULE (applies to ALL three prompts):
-The perfume bottle label text — every word, letter, and logo — must remain 100% identical to the reference image throughout the entire video. Never allow any letter to change, blur, smear, warp, or be replaced. State this explicitly in the positive prompt. The label is a locked graphical asset, not generated text.
+The perfume bottle label has exactly three text elements that must never change:
+  1. Brand name: "${brand || 'as shown on the bottle'}"
+  2. Perfume name: "${perfume || 'as shown on the bottle'}"
+  3. Parfum type: "${type}"
+Every letter, word, and logo on the label — "${labelText}" — must remain 100% identical to the reference image throughout the entire video. Never allow any letter to change, blur, smear, warp, or be replaced by different characters. State the exact label text explicitly in the positive prompt. The label is a locked graphical asset, not AI-generated text.
 
 Guidelines for positivePrompt:
 Write a single flowing paragraph that describes a COMPLETE STORY arc across ${dur} seconds — not a static scene. The prompt must include three phases:
@@ -45,7 +52,7 @@ Write a single flowing paragraph that describes a COMPLETE STORY arc across ${du
   CLIMAX & END (final ~20%): the camera arrives at a definitive hero shot of the bottle — close, crisp, dramatic — and the motion settles. Describe the exact final frame (e.g. "ending on a tight hero shot of the bottle, label perfectly intact, golden light raking across the cap, scene holds").
 Additional rules:
   - Max 700 chars. Hyper-realistic, high-end luxury commercial quality.
-  - LABEL INTEGRITY: include the phrase "bottle label text remains sharp, legible and identical to the reference throughout every frame" verbatim in the prompt.
+  - LABEL INTEGRITY: include this exact phrase verbatim in the prompt: "label reads '${labelText}' — every character stays sharp, legible and unchanged throughout every frame".
   - No spoken words or subtitles in the prompt.
   - Write camera moves as verbs in present tense ("camera slowly pushes in", "crane rises revealing", "arc left orbiting").
   - Avoid any camera angle that faces the label head-on for long — favor 3/4 angles so the label is visible but the model is less likely to re-generate the text.
@@ -61,7 +68,8 @@ Describe the opening frame of the video. STRICT BOTTLE PLACEMENT RULES — never
   - The label must face the camera at a 3/4 angle — readable, crisp, fully visible.
   - Background elements (scenery, props, lighting) must be BEHIND the bottle and can be soft/bokeh, but the bottle itself is always tack-sharp in the foreground.
   - The bottle must remain identical to the reference photo (same shape, label, proportions, colors).
-  - Include the instruction: "perfume bottle sharp in foreground, label fully legible, center frame, background softly blurred behind it".
+  - Include the exact label text in the prompt: the label reads "${labelText}" — brand, name, and type must all appear exactly as in the reference.
+  - Include the instruction: "perfume bottle sharp in foreground, label '${labelText}' fully legible, center frame, background softly blurred behind it".
 Max 600 chars.
 
 Return ONLY a valid JSON object — no markdown, no backticks, no commentary:

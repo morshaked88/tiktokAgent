@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
       result = await runWithAudio(audioUsed)
     } catch (firstErr: unknown) {
       const msg = firstErr instanceof Error ? firstErr.message : String(firstErr)
-      const isSensitiveAudio = msg.toLowerCase().includes('sensitive content')
-      if (isSensitiveAudio && audioUsed) {
+      const is422 = msg.toLowerCase().includes('unprocessable') || msg.toLowerCase().includes('sensitive content') || msg.includes('422')
+      if (is422 && audioUsed) {
         // Audio triggered content filter — retry silently without audio
         audioUsed = false
         result = await runWithAudio(false)

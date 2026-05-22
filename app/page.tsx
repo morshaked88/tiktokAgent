@@ -24,6 +24,11 @@ const GENDERS = [
   { value: 'unisex', label: 'Unisex' },
 ]
 
+const PARFUM_TYPES = [
+  { value: 'PARFUM', label: 'PARFUM' },
+  { value: 'EAU DE PARFUM', label: 'EAU DE PARFUM' },
+]
+
 const VIDEO_DURATIONS = [
   { value: '4',  label: '4s' },
   { value: '5',  label: '5s' },
@@ -155,6 +160,7 @@ export default function Home() {
   const [brandName, setBrandName] = useState('')
   const [perfumeName, setPerfumeName] = useState('')
   const [gender, setGender] = useState('women')
+  const [parfumType, setParfumType] = useState('PARFUM')
   const [videoDuration, setVideoDuration] = useState('8')
   const [customScene, setCustomScene] = useState('')
 
@@ -253,7 +259,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64, imageMediaType,
-          brandName, perfumeName, gender, videoDuration, customScene,
+          brandName, perfumeName, gender, parfumType, videoDuration, customScene,
         }),
       })
       const data = await res.json()
@@ -346,7 +352,7 @@ export default function Home() {
     setErrorMsg('')
     setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setBrandName(''); setPerfumeName(''); setGender('women')
+    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM')
     setVideoDuration('8'); setCustomScene('')
     setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
     setFirstFrameUrl('')
@@ -430,6 +436,9 @@ export default function Home() {
               </OptionCard>
               <OptionCard label="Gender">
                 <StyledSelect value={gender} onChange={setGender} options={GENDERS} />
+              </OptionCard>
+              <OptionCard label="Parfum Type">
+                <StyledSelect value={parfumType} onChange={setParfumType} options={PARFUM_TYPES} />
               </OptionCard>
               <OptionCard label="Video Duration">
                 <StyledSelect value={videoDuration} onChange={setVideoDuration} options={VIDEO_DURATIONS} />
