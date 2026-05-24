@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 export const maxDuration = 300
 
@@ -8,6 +10,24 @@ type Aspect = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'
 
 const RESOLUTIONS: Resolution[] = ['480p', '720p', '1080p']
 const ASPECTS: Aspect[] = ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']
+
+// Cache the uploaded end-card URL for the lifetime of the server process
+let cachedEndCardUrl: string | null = null
+
+async function getEndCardUrl(): Promise<string | null> {
+  if (cachedEndCardUrl) return cachedEndCardUrl
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'end-card.png')
+    const buffer = await readFile(filePath)
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'image/png' })
+    const file = new File([blob], 'end-card.png', { type: 'image/png' })
+    cachedEndCardUrl = await fal.storage.upload(file)
+    return cachedEndCardUrl
+  } catch (e) {
+    console.warn('End-card upload skipped:', e instanceof Error ? e.message : e)
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,8 +46,6 @@ export async function POST(req: NextRequest) {
 
     fal.config({ credentials: process.env.FAL_KEY })
 
-    const finalPrompt = String(prompt)
-
     const res: Resolution = RESOLUTIONS.includes(resolution) ? resolution : '720p'
     const ar: Aspect = ASPECTS.includes(aspectRatio) ? aspectRatio : 'auto'
 
@@ -38,13 +56,24 @@ export async function POST(req: NextRequest) {
       if (Number.isFinite(n) && n >= 4 && n <= 15) dur = n
     }
 
-    const baseInput = {
+    const endImageUrl = await getEndCardUrl()
+    const REALISM_PREFIX = 'Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation. '
+    const userPrompt = String(prompt)
+    const withRealism = userPrompt.toLowerCase().includes('photorealistic live-action')
+      ? userPrompt
+      : REALISM_PREFIX + userPrompt
+    const finalPrompt = endImageUrl
+      ? `${withRealism} In the final second, the scene fades smoothly to the BIENÍTU brand end-card on a black background.`
+      : withRealism
+
+    const baseInput: Record<string, unknown> = {
       image_url: imageUrl,
       prompt: finalPrompt,
       resolution: res,
       duration: dur,
       aspect_ratio: ar,
     }
+    if (endImageUrl) baseInput.end_image_url = endImageUrl
 
     const runWithAudio = async (withAudio: boolean) =>
       fal.subscribe('bytedance/seedance-2.0/image-to-video', {

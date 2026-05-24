@@ -248,6 +248,20 @@ export default function Home() {
     setProgress(final)
   }
 
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const blob = await fetch(url).then(r => r.blob())
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
+  }
+
   /* ── Step 1 → 3: Generate the 3 prompts ── */
   const generatePrompts = async () => {
     if (!imageBase64) return
@@ -539,7 +553,7 @@ export default function Home() {
               <img src={firstFrameUrl} alt="Generated first frame" className={styles.videoEl} style={{ objectFit: 'contain', background: '#000' }} />
               <div className={styles.videoActions}>
                 <button className={styles.regenBtn} onClick={generateFirstFrame}>↻ Regenerate</button>
-                <a href={firstFrameUrl} target="_blank" rel="noreferrer" download="first-frame.jpg" className={styles.dlBtn}>⬇ Download</a>
+                <button className={styles.dlBtn} onClick={() => downloadFile(firstFrameUrl!, 'first-frame.jpg')}>⬇ Download</button>
               </div>
             </div>
 
@@ -632,7 +646,7 @@ export default function Home() {
             <div className={styles.videoResultCard}>
               <video src={videoUrl} controls playsInline className={styles.videoEl} />
               <div className={styles.videoActions}>
-                <a href={videoUrl} download="perfume-video.mp4" className={styles.dlBtn}>⬇ Download Video</a>
+                <button className={styles.dlBtn} onClick={() => downloadFile(videoUrl, 'perfume-video.mp4')}>⬇ Download Video</button>
                 <button className={styles.regenBtn} onClick={() => setStep('video-config')}>↻ Regenerate</button>
               </div>
             </div>

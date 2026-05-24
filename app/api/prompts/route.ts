@@ -45,32 +45,39 @@ The perfume bottle label has exactly three text elements that must never change:
   3. Parfum type: "${type}"
 Every letter, word, and logo on the label — "${labelText}" — must remain 100% identical to the reference image throughout the entire video. Never allow any letter to change, blur, smear, warp, or be replaced by different characters. State the exact label text explicitly in the positive prompt. The label is a locked graphical asset, not AI-generated text.
 
+PHOTOREALISM RULE (applies to ALL three prompts):
+The output must look like LIVE-ACTION FOOTAGE shot on a real film camera — never CGI, never 3D render, never animation. Use anchor words like "shot on 35mm film", "ARRI Alexa", "anamorphic lens", "natural light", "real location", "live-action commercial", "documentary realism". Avoid generic luxury-render vocabulary that pushes models toward CGI: "sparkles", "floating particles", "magical glow", "dreamy aura", "ethereal mist" — drop these unless the user explicitly asked for them. People, fabrics, water, skin, and metal must read as physically real materials with believable reflections and skin texture.
+
+USER ELEMENTS RULE — MOST IMPORTANT:
+${scene ? `The creator wrote: "${scene}". Extract every concrete noun (people, objects, locations, props, vehicles, animals) from that sentence — they are MANDATORY visual elements. List the 2–3 most important ones VERBATIM in the FIRST SENTENCE of positivePrompt and the FIRST SENTENCE of firstFramePrompt. Do not paraphrase ("yacht" stays "yacht", "female model" stays "female model"). Do not soften, generalize, or omit them.` : 'The creator wrote no scene — invent a single concrete, real-world location with at most 2 visual elements. Be specific (e.g. "sun-bleached cliffs in Capri at golden hour" not "beautiful coastal scenery").'}
+
+PROMPT LENGTH RULE:
+Short, concrete, noun-heavy prompts produce better video than long descriptive ones. The video model has limited attention — more words means more dilution, not more detail. Distill ruthlessly: 2–3 nouns, 1 location, 1 lighting condition, 1 camera move per phase. Drop adjective stacks. Drop abstract mood words.
+
 Guidelines for positivePrompt:
-Write a single flowing paragraph that describes a COMPLETE STORY arc across ${dur} seconds — not a static scene. The prompt must include three phases:
-  OPENING (first ~20% of the video): establish the scene — where are we, what mood, what light. Camera starts at a specific position (e.g. extreme close-up of a texture, a wide establishing shot, a detail shot of an element in the scene).
-  BUILD (middle ~60%): the world comes alive around the bottle — something moves, changes, or reveals. Use specific, physical camera movement (slow push-in, orbit, crane rise, tilt-up, whip pan) and describe what changes in the environment (light shifts, elements move, atmosphere thickens). The perfume bottle should be discovered or revealed naturally within the story.
-  CLIMAX & END (final ~20%): the camera arrives at a definitive hero shot of the bottle — close, crisp, dramatic — and the motion settles. Describe the exact final frame (e.g. "ending on a tight hero shot of the bottle, label perfectly intact, golden light raking across the cap, scene holds").
-Additional rules:
-  - Max 700 chars. Hyper-realistic, high-end luxury commercial quality.
-  - LABEL INTEGRITY: include this exact phrase verbatim in the prompt: "label reads '${labelText}' — every character stays sharp, legible and unchanged throughout every frame".
-  - No spoken words or subtitles in the prompt.
-  - Write camera moves as verbs in present tense ("camera slowly pushes in", "crane rises revealing", "arc left orbiting").
-  - Avoid any camera angle that faces the label head-on for long — favor 3/4 angles so the label is visible but the model is less likely to re-generate the text.
+Single flowing paragraph describing a STORY ARC across ${dur} seconds. The prompt MUST start with the verbatim realism declaration below and MUST end with the verbatim label lock. Structure:
+  SENTENCE 1 (verbatim, no edits, must be the very first sentence): Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation.
+  SENTENCE 2: User's mandatory scene elements verbatim + real location + lens/light anchor (e.g. "shot on 35mm film, natural sunlight").
+  SENTENCE 3: 3-phase camera move — OPENING (~20%): where the camera starts. BUILD (~60%): one specific physical camera move (slow push-in / orbit left / crane rise / tilt-up) + one thing changing in the environment. CLIMAX (~20%): camera settles on a tight hero shot of the bottle.
+  SENTENCE 4 (verbatim, no edits, must be the very last sentence): label reads '${labelText}' — every character stays sharp, legible and unchanged throughout every frame.
+Hard rules:
+  - HARD MAX: 550 characters total. Shorter is better. If you cannot fit everything, cut adjectives — never cut the realism sentence, user elements, or label sentence.
+  - Live-action realism only. Never use the words: CGI, render, 3D, animated, cartoon, illustration, digital art.
+  - Camera moves as present-tense verbs ("camera pushes in", "crane rises").
+  - Prefer 3/4 angle on the bottle, not head-on.
+  - No spoken words, no subtitles, no on-screen text other than the label.
 
 Guidelines for negativePrompt:
-Comma-separated list of things to avoid. Max 250 chars. MUST include all of these: label text distortion, letter morphing, text smearing, blurry label, changed words on bottle, logo warping, text flickering, letter substitution, bottle shape change, watermark, low resolution, cartoonish, jitter, extra objects.
+Comma-separated. Max 250 chars. MUST include: CGI, 3D render, animated, plastic look, video game, unreal engine, synthetic, fake materials, label text distortion, letter morphing, text smearing, changed words on bottle, logo warping, bottle shape change, watermark, low resolution, jitter, extra fingers, deformed hands.
 
 Guidelines for firstFramePrompt:
-Describe the opening frame of the video. STRICT BOTTLE PLACEMENT RULES — never break these:
-  - The perfume bottle MUST be the primary subject, placed in the CENTER-FOREGROUND of the frame.
-  - The bottle MUST be SHARP, IN FOCUS, and fully visible — no blur, no bokeh on the bottle itself.
-  - The bottle MUST occupy at least 40% of the frame height — never small, never pushed to the background.
-  - The label must face the camera at a 3/4 angle — readable, crisp, fully visible.
-  - Background elements (scenery, props, lighting) must be BEHIND the bottle and can be soft/bokeh, but the bottle itself is always tack-sharp in the foreground.
-  - The bottle must remain identical to the reference photo (same shape, label, proportions, colors).
-  - Include the exact label text in the prompt: the label reads "${labelText}" — brand, name, and type must all appear exactly as in the reference.
-  - Include the instruction: "perfume bottle sharp in foreground, label '${labelText}' fully legible, center frame, background softly blurred behind it".
-Max 600 chars.
+A real photograph of the opening frame. Hard rules:
+  - SENTENCE 1: User's mandatory elements verbatim + real location + "photorealistic, shot on 35mm film, natural light, not CGI".
+  - The perfume bottle MUST be the primary subject in the CENTER-FOREGROUND, sharp and in focus, occupying at least 40% of frame height. Background softly blurred.
+  - Label at 3/4 angle, reads '${labelText}' — fully legible, brand + name + type all visible.
+  - Bottle identical to the reference photo (same shape, label, proportions, colors).
+  - Live action only. Never describe the image as a render, illustration, or digital art.
+  - HARD MAX: 400 characters.
 
 Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
 {"positivePrompt": "...", "negativePrompt": "...", "firstFramePrompt": "..."}`

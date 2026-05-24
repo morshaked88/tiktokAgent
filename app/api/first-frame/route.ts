@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     const aspect: NanoBananaAspect = NANO_ASPECTS.includes(aspectRatio) ? aspectRatio : '9:16'
 
-    const enforcedPrompt = `${firstFramePrompt.trim()} The perfume bottle from the reference image must appear sharp, in focus, centered in the foreground, occupying at least 40% of the frame height, label fully visible and legible at a 3/4 angle. Do not push the bottle to the background. Do not blur the bottle. Background may be softly blurred but the bottle must be tack-sharp.`
+    const enforcedPrompt = `${firstFramePrompt.trim()} The perfume bottle from the reference image must appear sharp, in focus, centered in the foreground, occupying at least 40% of the frame height, label fully visible and legible at a 3/4 angle. Do not push the bottle to the background. Do not blur the bottle. Background may be softly blurred but the bottle must be tack-sharp. PHOTOREALISTIC: this is a real photograph shot on a 35mm film camera with natural lighting — not a CGI render, not 3D, not illustration, not digital art. All materials, skin, fabrics, and surfaces must look physically real with believable textures and reflections.`
 
     const result = await fal.subscribe('fal-ai/nano-banana/edit', {
       input: {
