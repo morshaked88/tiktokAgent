@@ -45,6 +45,15 @@ The perfume bottle label has exactly three text elements that must never change:
   3. Parfum type: "${type}"
 Every letter, word, and logo on the label — "${labelText}" — must remain 100% identical to the reference image throughout the entire video. Never allow any letter to change, blur, smear, warp, or be replaced by different characters. State the exact label text explicitly in the positive prompt. The label is a locked graphical asset, not AI-generated text.
 
+CRITICAL BOTTLE GEOMETRY PRESERVATION RULE (applies to ALL three prompts):
+The perfume bottle's physical form must remain pixel-identical to the reference image throughout every frame:
+  - Cap: exact same shape, size, material, color (do not change the cap into a different design)
+  - Bottle silhouette: exact same outline, faceting, edges, and proportions
+  - Glass color and clarity: identical hue and transparency
+  - Label position on the bottle: same placement, same size, same border
+  - All dimensions and aspect ratios of the bottle: unchanged
+The model must NOT re-design or re-interpret the bottle. Treat it as a locked, photographed product — only the world around it can change.
+
 PHOTOREALISM RULE (applies to ALL three prompts):
 The output must look like LIVE-ACTION FOOTAGE shot on a real film camera — never CGI, never 3D render, never animation. Use anchor words like "shot on 35mm film", "ARRI Alexa", "anamorphic lens", "natural light", "real location", "live-action commercial", "documentary realism". Avoid generic luxury-render vocabulary that pushes models toward CGI: "sparkles", "floating particles", "magical glow", "dreamy aura", "ethereal mist" — drop these unless the user explicitly asked for them. People, fabrics, water, skin, and metal must read as physically real materials with believable reflections and skin texture.
 
@@ -59,25 +68,33 @@ Single flowing paragraph describing a STORY ARC across ${dur} seconds. The promp
   SENTENCE 1 (verbatim, no edits, must be the very first sentence): Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation.
   SENTENCE 2: User's mandatory scene elements verbatim + real location + lens/light anchor (e.g. "shot on 35mm film, natural sunlight").
   SENTENCE 3: 3-phase camera move — OPENING (~20%): where the camera starts. BUILD (~60%): one specific physical camera move (slow push-in / orbit left / crane rise / tilt-up) + one thing changing in the environment. CLIMAX (~20%): camera settles on a tight hero shot of the bottle.
-  SENTENCE 4 (verbatim, no edits, must be the very last sentence): label reads '${labelText}' — every character stays sharp, legible and unchanged throughout every frame.
+  SENTENCE 4 (verbatim, no edits): Bottle cap, silhouette and proportions stay identical to the reference frame in every frame.
+  SENTENCE 5 (verbatim, no edits, must be the very last sentence): label reads '${labelText}' — every individual letter stays sharp, in the same position, and unchanged throughout every frame; no letter may warp, blur, swap, or be re-rendered.
 Hard rules:
-  - HARD MAX: 550 characters total. Shorter is better. If you cannot fit everything, cut adjectives — never cut the realism sentence, user elements, or label sentence.
+  - HARD MAX: 700 characters total. Shorter is better. If you cannot fit everything, cut adjectives — never cut the realism, bottle-lock, user elements, or label sentence.
   - Live-action realism only. Never use the words: CGI, render, 3D, animated, cartoon, illustration, digital art.
   - Camera moves as present-tense verbs ("camera pushes in", "crane rises").
   - Prefer 3/4 angle on the bottle, not head-on.
   - No spoken words, no subtitles, no on-screen text other than the label.
 
 Guidelines for negativePrompt:
-Comma-separated. Max 250 chars. MUST include: CGI, 3D render, animated, plastic look, video game, unreal engine, synthetic, fake materials, label text distortion, letter morphing, text smearing, changed words on bottle, logo warping, bottle shape change, watermark, low resolution, jitter, extra fingers, deformed hands.
+Comma-separated, max 400 chars. MUST include (target the exact failure modes — label drift and cap/silhouette drift):
+  CGI, 3D render, animated, plastic look, video game, synthetic,
+  label text distortion, label text warping, label text morphing, label text blurring, label letters changing, label letters swapping, individual letters becoming illegible, letters becoming gibberish, partial label distortion,
+  bottle cap changing shape, cap becoming a different design, cap warping, cap morphing, cap re-rendered,
+  bottle silhouette changing, bottle outline distorting, bottle proportions changing, bottle re-designed,
+  glass color shifting, label repositioning, label resizing,
+  watermark, jitter, low resolution, deformed hands.
 
 Guidelines for firstFramePrompt:
-A real photograph of the opening frame. Hard rules:
+This prompt is fed to an image editor (Flux Kontext) that takes the user's bottle photo as input. Phrase the prompt as a SURGICAL BACKGROUND REPLACEMENT, not a fresh image generation. Describe the new scene/setting/lighting around the bottle, but explicitly state that the bottle itself (cap, silhouette, glass, label) must remain pixel-identical to the reference. Use language like "change the background to X, keep the bottle untouched" — never language that implies redrawing the bottle.
+Hard rules:
   - SENTENCE 1: User's mandatory elements verbatim + real location + "photorealistic, shot on 35mm film, natural light, not CGI".
+  - SENTENCE 2 (verbatim): Keep the perfume bottle untouched — same cap shape, same silhouette, same glass color, same label, same letters, same position.
   - The perfume bottle MUST be the primary subject in the CENTER-FOREGROUND, sharp and in focus, occupying at least 40% of frame height. Background softly blurred.
   - Label at 3/4 angle, reads '${labelText}' — fully legible, brand + name + type all visible.
-  - Bottle identical to the reference photo (same shape, label, proportions, colors).
   - Live action only. Never describe the image as a render, illustration, or digital art.
-  - HARD MAX: 400 characters.
+  - HARD MAX: 500 characters.
 
 Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
 {"positivePrompt": "...", "negativePrompt": "...", "firstFramePrompt": "..."}`

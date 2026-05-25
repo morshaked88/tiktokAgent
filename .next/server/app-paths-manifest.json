@@ -1,7 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
+  "/api/prompts/route": "app/api/prompts/route.js",
   "/api/seedance/route": "app/api/seedance/route.js",
-  "/page": "app/page.js",
   "/api/first-frame/route": "app/api/first-frame/route.js",
-  "/api/prompts/route": "app/api/prompts/route.js"
+  "/page": "app/page.js"
 }

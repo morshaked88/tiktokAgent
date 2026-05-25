@@ -58,13 +58,19 @@ export async function POST(req: NextRequest) {
 
     const endImageUrl = await getEndCardUrl()
     const REALISM_PREFIX = 'Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation. '
-    const userPrompt = String(prompt)
-    const withRealism = userPrompt.toLowerCase().includes('photorealistic live-action')
-      ? userPrompt
-      : REALISM_PREFIX + userPrompt
+    const BOTTLE_LOCK_PREFIX = 'Bottle is a locked, photographed product: cap shape, silhouette, glass color, label position, and every letter on the label must stay pixel-identical to the input frame throughout the entire video. The bottle is never redrawn, only the world around it moves. '
+
+    // Prepend missing anchors in reverse order so realism ends up first, bottle-lock second
+    let built = String(prompt)
+    if (!built.toLowerCase().includes('locked, photographed product')) {
+      built = BOTTLE_LOCK_PREFIX + built
+    }
+    if (!built.toLowerCase().includes('photorealistic live-action')) {
+      built = REALISM_PREFIX + built
+    }
     const finalPrompt = endImageUrl
-      ? `${withRealism} In the final second, the scene fades smoothly to the BIENÍTU brand end-card on a black background.`
-      : withRealism
+      ? `${built} In the final second, the scene fades smoothly to the BIENÍTU brand end-card on a black background.`
+      : built
 
     const baseInput: Record<string, unknown> = {
       image_url: imageUrl,

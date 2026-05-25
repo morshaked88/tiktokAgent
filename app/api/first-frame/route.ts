@@ -3,12 +3,11 @@ import { fal } from '@fal-ai/client'
 
 export const maxDuration = 180
 
-type NanoBananaAspect =
-  | 'auto' | '21:9' | '16:9' | '3:2' | '4:3' | '5:4'
-  | '1:1' | '4:5' | '3:4' | '2:3' | '9:16'
+type KontextAspect =
+  | '21:9' | '16:9' | '4:3' | '3:2' | '1:1' | '2:3' | '3:4' | '9:16' | '9:21'
 
-const NANO_ASPECTS: NanoBananaAspect[] = [
-  'auto', '21:9', '16:9', '3:2', '4:3', '5:4', '1:1', '4:5', '3:4', '2:3', '9:16',
+const KONTEXT_ASPECTS: KontextAspect[] = [
+  '21:9', '16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '9:21',
 ]
 
 export async function POST(req: NextRequest) {
@@ -26,23 +25,23 @@ export async function POST(req: NextRequest) {
     const file = new File([blob], 'perfume.jpg', { type: mimeType })
     const uploadedUrl = await fal.storage.upload(file)
 
-    const aspect: NanoBananaAspect = NANO_ASPECTS.includes(aspectRatio) ? aspectRatio : '9:16'
+    const aspect: KontextAspect = KONTEXT_ASPECTS.includes(aspectRatio) ? aspectRatio : '9:16'
 
-    const enforcedPrompt = `${firstFramePrompt.trim()} The perfume bottle from the reference image must appear sharp, in focus, centered in the foreground, occupying at least 40% of the frame height, label fully visible and legible at a 3/4 angle. Do not push the bottle to the background. Do not blur the bottle. Background may be softly blurred but the bottle must be tack-sharp. PHOTOREALISTIC: this is a real photograph shot on a 35mm film camera with natural lighting — not a CGI render, not 3D, not illustration, not digital art. All materials, skin, fabrics, and surfaces must look physically real with believable textures and reflections.`
+    const enforcedPrompt = `${firstFramePrompt.trim()} PERFECT BOTTLE PRESERVATION: change ONLY the background and surroundings. The perfume bottle from the reference image — including its exact silhouette, cap shape, glass color, label position, label text, every letter, and all proportions — must remain 100% pixel-identical to the input. Do not redraw, redesign, or reinterpret any part of the bottle itself. Composition: the bottle is centered in the foreground, sharp and in focus, occupying at least 40% of the frame height, label at 3/4 angle, fully legible. Background may be softly blurred but the bottle is tack-sharp. PHOTOREALISTIC: real photograph shot on a 35mm film camera with natural lighting — not CGI, not 3D, not illustration, not digital art.`
 
-    const result = await fal.subscribe('fal-ai/nano-banana/edit', {
+    const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
       input: {
         prompt: enforcedPrompt,
-        image_urls: [uploadedUrl],
+        image_url: uploadedUrl,
         aspect_ratio: aspect,
         output_format: 'jpeg',
-        num_images: 1,
+        guidance_scale: 3.5,
       },
     })
 
     const images = (result.data as { images?: { url: string }[] })?.images
     const imageUrl = images?.[0]?.url
-    if (!imageUrl) throw new Error('nano-banana returned no image')
+    if (!imageUrl) throw new Error('Flux Kontext returned no image')
 
     return NextResponse.json({ imageUrl })
   } catch (e: unknown) {
