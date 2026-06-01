@@ -2,6 +2,60 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 60
 
+// Curated list of distinct camera move profiles. One is picked at random per
+// request to ensure videos feel visually varied instead of always defaulting
+// to "slow push-in".
+const CAMERA_STYLES: { name: string; description: string }[] = [
+  {
+    name: 'Slow push-in dolly',
+    description: 'Camera starts at a medium-wide distance and slowly dollies straight in toward the bottle, gently compressing the scene around it, settling on a tight hero close-up.',
+  },
+  {
+    name: 'Orbit half-circle',
+    description: 'Camera orbits smoothly around the bottle in a 180° arc, revealing different sides of the scene while the bottle stays centered in frame. Ends facing the bottle straight-on at hero distance.',
+  },
+  {
+    name: 'Crane descent',
+    description: 'Camera starts elevated well above eye-line looking down, then cranes smoothly downward, settling at the bottle\'s mid-height for the hero shot.',
+  },
+  {
+    name: 'Pull-back reveal',
+    description: 'Camera starts in an extreme close-up on a single detail of the bottle (cap facet, label letter, light refraction in the glass), then slowly pulls straight back to reveal the wider scene around it.',
+  },
+  {
+    name: 'Tilt-up from ground',
+    description: 'Camera starts at ground or table-surface level looking up past foreground elements, then tilts smoothly upward, settling at bottle eye-level for the hero shot.',
+  },
+  {
+    name: 'Whip-pan reveal',
+    description: 'Camera holds on a scene element (a hand, a wave, a window, a flame), then whip-pans quickly to the bottle in a single motion, settling on it for the hero shot.',
+  },
+  {
+    name: 'Tracking sidemove',
+    description: 'Camera tracks sideways (left-to-right or right-to-left) past foreground elements, revealing the bottle mid-shot, continuing past briefly before settling back on it.',
+  },
+  {
+    name: 'Boom rise',
+    description: 'Camera starts low near the table or ground, then booms vertically upward past the bottle, settling at bottle mid-height looking slightly downward.',
+  },
+  {
+    name: 'Rack focus pull',
+    description: 'Camera holds position throughout. Focus starts on a foreground element (a flower, a model\'s eyes, a flame), then racks smoothly to pull focus to the bottle behind or beside it.',
+  },
+  {
+    name: 'Handheld documentary drift',
+    description: 'Subtle handheld camera with natural micro-movements, drifting organically around the bottle as if a documentary photographer is walking around it, ending on a steady hero shot.',
+  },
+  {
+    name: 'Diagonal arc',
+    description: 'Camera moves on a diagonal arc — starting low and to one side, sweeping up and across to the opposite side at bottle height — revealing the scene in a single sweeping motion.',
+  },
+  {
+    name: 'Top-down to eye-level swoop',
+    description: 'Camera starts overhead looking straight down at the bottle and surroundings, then swoops down and forward in one smooth motion to settle at bottle eye-level for the hero shot.',
+  },
+]
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -31,6 +85,9 @@ export async function POST(req: NextRequest) {
     const sceneLine = scene
       ? `Scene the creator wants: "${scene}"`
       : 'The creator has no scene preference — invent a compelling cinematic concept that fits the perfume.'
+
+    // Pick a random camera-move profile so videos feel visually varied across generations
+    const cameraStyle = CAMERA_STYLES[Math.floor(Math.random() * CAMERA_STYLES.length)]
 
     const prompt = `Create AI Prompt.
 I want a cinematic video for my perfume brand ${productLabel} for ${gen}.
@@ -63,11 +120,16 @@ ${scene ? `The creator wrote: "${scene}". Extract every concrete noun (people, o
 PROMPT LENGTH RULE:
 Short, concrete, noun-heavy prompts produce better video than long descriptive ones. The video model has limited attention — more words means more dilution, not more detail. Distill ruthlessly: 2–3 nouns, 1 location, 1 lighting condition, 1 camera move per phase. Drop adjective stacks. Drop abstract mood words.
 
+MANDATORY CAMERA STYLE (this is the camera move you MUST use — do not substitute):
+Camera profile: **${cameraStyle.name}**
+Mechanics: ${cameraStyle.description}
+Use this exact camera move in SENTENCE 3 of positivePrompt. Adapt the description naturally into the prompt (e.g. integrate "${cameraStyle.name.toLowerCase()}" wording), but do NOT replace it with a different camera move like "slow push-in" if that is not the assigned style. The first frame composition in firstFramePrompt should match the STARTING position of this camera move.
+
 Guidelines for positivePrompt:
 Single flowing paragraph describing a STORY ARC across ${dur} seconds. The prompt MUST start with the verbatim realism declaration below and MUST end with the verbatim label lock. Structure:
   SENTENCE 1 (verbatim, no edits, must be the very first sentence): Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation.
   SENTENCE 2: User's mandatory scene elements verbatim + real location + lens/light anchor (e.g. "shot on 35mm film, natural sunlight").
-  SENTENCE 3: 3-phase camera move — OPENING (~20%): where the camera starts. BUILD (~60%): one specific physical camera move (slow push-in / orbit left / crane rise / tilt-up) + one thing changing in the environment. CLIMAX (~20%): camera settles on a tight hero shot of the bottle.
+  SENTENCE 3: 3-phase camera move using the MANDATORY CAMERA STYLE assigned above — OPENING (~20%): where the camera starts (matches the start position of the assigned style). BUILD (~60%): execute the assigned camera move + one thing changing in the environment. CLIMAX (~20%): camera settles on a tight hero shot of the bottle.
   SENTENCE 4 (verbatim, no edits): Bottle cap, silhouette and proportions stay identical to the reference frame in every frame.
   SENTENCE 5 (verbatim, no edits, must be the very last sentence): label reads '${labelText}' — every individual letter stays sharp, in the same position, and unchanged throughout every frame; no letter may warp, blur, swap, or be re-rendered.
 Hard rules:
@@ -149,6 +211,7 @@ Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
       positivePrompt: String(parsed.positivePrompt),
       negativePrompt: String(parsed.negativePrompt),
       firstFramePrompt: String(parsed.firstFramePrompt),
+      cameraStyle: cameraStyle.name,
     })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'
