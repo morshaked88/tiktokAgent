@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       perfumeName,
       gender,
       parfumType,
+      cameraStyle,
       videoDuration,
       customScene,
     } = await req.json()
@@ -86,8 +87,11 @@ export async function POST(req: NextRequest) {
       ? `Scene the creator wants: "${scene}"`
       : 'The creator has no scene preference — invent a compelling cinematic concept that fits the perfume.'
 
-    // Pick a random camera-move profile so videos feel visually varied across generations
-    const cameraStyle = CAMERA_STYLES[Math.floor(Math.random() * CAMERA_STYLES.length)]
+    // Use the user's chosen style, or pick randomly when "auto"
+    const chosen = cameraStyle && cameraStyle !== 'auto'
+      ? CAMERA_STYLES.find(s => s.name === cameraStyle) ?? null
+      : null
+    const selectedStyle = chosen ?? CAMERA_STYLES[Math.floor(Math.random() * CAMERA_STYLES.length)]
 
     const prompt = `Create AI Prompt.
 I want a cinematic video for my perfume brand ${productLabel} for ${gen}.
@@ -121,9 +125,9 @@ PROMPT LENGTH RULE:
 Short, concrete, noun-heavy prompts produce better video than long descriptive ones. The video model has limited attention — more words means more dilution, not more detail. Distill ruthlessly: 2–3 nouns, 1 location, 1 lighting condition, 1 camera move per phase. Drop adjective stacks. Drop abstract mood words.
 
 MANDATORY CAMERA STYLE (this is the camera move you MUST use — do not substitute):
-Camera profile: **${cameraStyle.name}**
-Mechanics: ${cameraStyle.description}
-Use this exact camera move in SENTENCE 3 of positivePrompt. Adapt the description naturally into the prompt (e.g. integrate "${cameraStyle.name.toLowerCase()}" wording), but do NOT replace it with a different camera move like "slow push-in" if that is not the assigned style. The first frame composition in firstFramePrompt should match the STARTING position of this camera move.
+Camera profile: **${selectedStyle.name}**
+Mechanics: ${selectedStyle.description}
+Use this exact camera move in SENTENCE 3 of positivePrompt. Adapt the description naturally into the prompt (e.g. integrate "${selectedStyle.name.toLowerCase()}" wording), but do NOT replace it with a different camera move like "slow push-in" if that is not the assigned style. The first frame composition in firstFramePrompt should match the STARTING position of this camera move.
 
 Guidelines for positivePrompt:
 Single flowing paragraph describing a STORY ARC across ${dur} seconds. The prompt MUST start with the verbatim realism declaration below and MUST end with the verbatim label lock. Structure:
@@ -211,7 +215,7 @@ Return ONLY a valid JSON object — no markdown, no backticks, no commentary:
       positivePrompt: String(parsed.positivePrompt),
       negativePrompt: String(parsed.negativePrompt),
       firstFramePrompt: String(parsed.firstFramePrompt),
-      cameraStyle: cameraStyle.name,
+      cameraStyle: selectedStyle.name,
     })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error'

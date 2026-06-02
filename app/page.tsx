@@ -29,6 +29,22 @@ const PARFUM_TYPES = [
   { value: 'EAU DE PARFUM', label: 'EAU DE PARFUM' },
 ]
 
+const CAMERA_STYLES = [
+  { value: 'auto',            label: '🎲 Auto (random each time)' },
+  { value: 'Slow push-in dolly',          label: '🔭 Slow Push-In Dolly' },
+  { value: 'Orbit half-circle',           label: '🔄 Orbit Half-Circle' },
+  { value: 'Crane descent',               label: '🏗 Crane Descent' },
+  { value: 'Pull-back reveal',            label: '↩ Pull-Back Reveal' },
+  { value: 'Tilt-up from ground',         label: '⬆ Tilt-Up from Ground' },
+  { value: 'Whip-pan reveal',             label: '⚡ Whip-Pan Reveal' },
+  { value: 'Tracking sidemove',           label: '↔ Tracking Sidemove' },
+  { value: 'Boom rise',                   label: '🚀 Boom Rise' },
+  { value: 'Rack focus pull',             label: '🎞 Rack Focus Pull' },
+  { value: 'Handheld documentary drift',  label: '🎥 Handheld Drift' },
+  { value: 'Diagonal arc',               label: '↗ Diagonal Arc' },
+  { value: 'Top-down to eye-level swoop', label: '🔽 Top-Down Swoop' },
+]
+
 const VIDEO_DURATIONS = [
   { value: '4',  label: '4s' },
   { value: '5',  label: '5s' },
@@ -161,6 +177,7 @@ export default function Home() {
   const [perfumeName, setPerfumeName] = useState('')
   const [gender, setGender] = useState('women')
   const [parfumType, setParfumType] = useState('PARFUM')
+  const [cameraStyle, setCameraStyle] = useState('auto')
   const [videoDuration, setVideoDuration] = useState('8')
   const [customScene, setCustomScene] = useState('')
 
@@ -273,7 +290,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64, imageMediaType,
-          brandName, perfumeName, gender, parfumType, videoDuration, customScene,
+          brandName, perfumeName, gender, parfumType, cameraStyle, videoDuration, customScene,
         }),
       })
       const data = await res.json()
@@ -366,7 +383,7 @@ export default function Home() {
     setErrorMsg('')
     setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM')
+    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto')
     setVideoDuration('8'); setCustomScene('')
     setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
     setFirstFrameUrl('')
@@ -456,6 +473,9 @@ export default function Home() {
               </OptionCard>
               <OptionCard label="Video Duration">
                 <StyledSelect value={videoDuration} onChange={setVideoDuration} options={VIDEO_DURATIONS} />
+              </OptionCard>
+              <OptionCard label="Camera Style">
+                <StyledSelect value={cameraStyle} onChange={setCameraStyle} options={CAMERA_STYLES} />
               </OptionCard>
             </div>
 
