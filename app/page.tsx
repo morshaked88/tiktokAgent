@@ -352,22 +352,36 @@ export default function Home() {
         ? `positivePrompt - ${positivePrompt} negativePrompt-${neg}`
         : positivePrompt
 
-      const res = await fetch('/api/seedance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: firstFrameUrl,
-          prompt: combinedPrompt,
-          resolution: seedanceResolution,
-          duration: seedanceDuration,
-          aspectRatio: seedanceAspect,
-          generateAudio: seedanceAudio,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error || 'Video generation failed')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 420_000) // 7 min client timeout
+      let res: Response
+      try {
+        res = await fetch('/api/seedance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            imageUrl: firstFrameUrl,
+            prompt: combinedPrompt,
+            resolution: seedanceResolution,
+            duration: seedanceDuration,
+            aspectRatio: seedanceAspect,
+            generateAudio: seedanceAudio,
+          }),
+        })
+      } finally {
+        clearTimeout(timeoutId)
+      }
+      const text = await res.text()
+      let data: Record<string, unknown>
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error(`Server error: ${text.slice(0, 120)}`)
+      }
+      if (!res.ok || data.error) throw new Error(String(data.error) || 'Video generation failed')
       stopProgress()
-      setVideoUrl(data.videoUrl)
+      setVideoUrl(String(data.videoUrl))
       setAudioDropped(seedanceAudio && data.audioUsed === false)
       setStep('video-done')
     } catch (e: unknown) {
