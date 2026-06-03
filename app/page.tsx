@@ -178,6 +178,7 @@ export default function Home() {
   const [gender, setGender] = useState('women')
   const [parfumType, setParfumType] = useState('PARFUM')
   const [cameraStyle, setCameraStyle] = useState('auto')
+  const [resolvedCameraStyle, setResolvedCameraStyle] = useState('')
   const [videoDuration, setVideoDuration] = useState('8')
   const [customScene, setCustomScene] = useState('')
 
@@ -298,6 +299,7 @@ export default function Home() {
       setPositivePrompt(data.positivePrompt)
       setNegativePrompt(data.negativePrompt)
       setFirstFramePrompt(data.firstFramePrompt)
+      setResolvedCameraStyle(data.cameraStyle || '')
       setStep('prompts-ready')
     } catch (e: unknown) {
       setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
@@ -348,9 +350,17 @@ export default function Home() {
     startProgress(92, 3500)
     try {
       const neg = negativePrompt.trim()
+
+      // Always append the resolved camera style name so Seedance knows the intended
+      // move even if the user edited the positive prompt and removed it.
+      const positiveWithCamera = resolvedCameraStyle && resolvedCameraStyle !== 'auto' &&
+        !positivePrompt.toLowerCase().includes(resolvedCameraStyle.toLowerCase())
+          ? `${positivePrompt} Camera move: ${resolvedCameraStyle}.`
+          : positivePrompt
+
       const combinedPrompt = neg
-        ? `positivePrompt - ${positivePrompt} negativePrompt-${neg}`
-        : positivePrompt
+        ? `positivePrompt - ${positiveWithCamera} negativePrompt-${neg}`
+        : positiveWithCamera
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 420_000) // 7 min client timeout
@@ -397,7 +407,7 @@ export default function Home() {
     setErrorMsg('')
     setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto')
+    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto'); setResolvedCameraStyle('')
     setVideoDuration('8'); setCustomScene('')
     setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
     setFirstFrameUrl('')

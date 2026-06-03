@@ -157,7 +157,8 @@ This prompt is fed to an image editor (Flux Kontext) that takes the user's bottl
 Hard rules:
   - SENTENCE 1: User's mandatory elements verbatim + real location + "photorealistic, shot on 35mm film, natural light, not CGI".
   - SENTENCE 2 (verbatim): Keep the perfume bottle untouched — same cap shape, same silhouette, same glass color, same label, same letters, same position.
-  - The perfume bottle MUST be the primary subject in the CENTER-FOREGROUND, sharp and in focus, occupying at least 40% of frame height. Background softly blurred.
+  - The ENTIRE perfume bottle MUST be fully visible in the frame — from the bottom of the base to the top of the cap — with clear empty space above and below. NEVER crop, clip, or cut off any part of the bottle at any frame edge.
+  - The bottle is the primary subject in the CENTER-FOREGROUND, sharp and in focus, occupying 50–70% of the frame height. Background softly blurred.
   - Label at 3/4 angle, reads '${labelText}' — fully legible, brand + name + type all visible.
   - Live action only. Never describe the image as a render, illustration, or digital art.
   - HARD MAX: 500 characters.
