@@ -7,52 +7,36 @@ export const maxDuration = 60
 // to "slow push-in".
 const CAMERA_STYLES: { name: string; description: string }[] = [
   {
-    name: 'Slow push-in dolly',
-    description: 'Camera starts at a medium-wide distance and slowly dollies straight in toward the bottle, gently compressing the scene around it, settling on a tight hero close-up.',
+    name: 'Zoom in',
+    description: 'Camera stays perfectly frontal and stationary. The lens slowly zooms in straight toward the bottle, starting from a full-bottle wide shot and ending on a tight hero close-up of the label. No rotation, no orbit, no side movement.',
   },
   {
-    name: 'Orbit half-circle',
-    description: 'Camera orbits smoothly around the bottle in a 180° arc, revealing different sides of the scene while the bottle stays centered in frame. Ends facing the bottle straight-on at hero distance.',
+    name: 'Zoom out',
+    description: 'Camera stays perfectly frontal and stationary. The lens slowly zooms out from a tight close-up on the bottle label, pulling back to reveal the full bottle and the surrounding scene. No rotation, no orbit, no side movement.',
   },
   {
-    name: 'Crane descent',
-    description: 'Camera starts elevated well above eye-line looking down, then cranes smoothly downward, settling at the bottle\'s mid-height for the hero shot.',
+    name: 'Dolly in',
+    description: 'Camera moves physically straight forward toward the bottle on a perfectly frontal axis, starting from a full-bottle wide shot and ending on a tight hero close-up. The scene compresses naturally behind the bottle. No rotation, no orbit, no side movement.',
   },
   {
-    name: 'Pull-back reveal',
-    description: 'Camera starts in an extreme close-up on a single detail of the bottle (cap facet, label letter, light refraction in the glass), then slowly pulls straight back to reveal the wider scene around it.',
+    name: 'Dolly out',
+    description: 'Camera moves physically straight backward away from the bottle on a perfectly frontal axis, starting from a tight close-up and pulling back to reveal the full bottle and surrounding scene. No rotation, no orbit, no side movement.',
   },
   {
-    name: 'Tilt-up from ground',
-    description: 'Camera starts at ground or table-surface level looking up past foreground elements, then tilts smoothly upward, settling at bottle eye-level for the hero shot.',
+    name: 'Pan left to right',
+    description: 'Camera stays at a fixed frontal distance and pans horizontally from left to right across the bottle, keeping the bottle centered throughout the move. The scene slides past. No zoom, no orbit, no vertical movement.',
   },
   {
-    name: 'Whip-pan reveal',
-    description: 'Camera holds on a scene element (a hand, a wave, a window, a flame), then whip-pans quickly to the bottle in a single motion, settling on it for the hero shot.',
+    name: 'Pan right to left',
+    description: 'Camera stays at a fixed frontal distance and pans horizontally from right to left across the bottle, keeping the bottle centered throughout the move. The scene slides past. No zoom, no orbit, no vertical movement.',
   },
   {
-    name: 'Tracking sidemove',
-    description: 'Camera tracks sideways (left-to-right or right-to-left) past foreground elements, revealing the bottle mid-shot, continuing past briefly before settling back on it.',
+    name: 'Tilt top to bottom',
+    description: 'Camera stays at a fixed frontal distance and tilts vertically downward — starting above the bottle looking slightly down, slowly tilting until the bottle is centered at eye-level. No zoom, no orbit, no side movement.',
   },
   {
-    name: 'Boom rise',
-    description: 'Camera starts low near the table or ground, then booms vertically upward past the bottle, settling at bottle mid-height looking slightly downward.',
-  },
-  {
-    name: 'Rack focus pull',
-    description: 'Camera holds position throughout. Focus starts on a foreground element (a flower, a model\'s eyes, a flame), then racks smoothly to pull focus to the bottle behind or beside it.',
-  },
-  {
-    name: 'Handheld documentary drift',
-    description: 'Subtle handheld camera with natural micro-movements, drifting organically around the bottle as if a documentary photographer is walking around it, ending on a steady hero shot.',
-  },
-  {
-    name: 'Diagonal arc',
-    description: 'Camera moves on a diagonal arc — starting low and to one side, sweeping up and across to the opposite side at bottle height — revealing the scene in a single sweeping motion.',
-  },
-  {
-    name: 'Top-down to eye-level swoop',
-    description: 'Camera starts overhead looking straight down at the bottle and surroundings, then swoops down and forward in one smooth motion to settle at bottle eye-level for the hero shot.',
+    name: 'Tilt bottom to top',
+    description: 'Camera stays at a fixed frontal distance and tilts vertically upward — starting below the bottle looking slightly up at the base, slowly tilting until the bottle is centered at eye-level. No zoom, no orbit, no side movement.',
   },
 ]
 

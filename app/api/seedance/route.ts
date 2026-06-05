@@ -11,20 +11,27 @@ type Aspect = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'
 const RESOLUTIONS: Resolution[] = ['480p', '720p', '1080p']
 const ASPECTS: Aspect[] = ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']
 
-// Cache the uploaded end-card URL for the lifetime of the server process
-let cachedEndCardUrl: string | null = null
+const END_CARD_FILES: Record<string, { file: string; label: string }> = {
+  bienitu:   { file: 'end-card.png',          label: 'BIENÍTU' },
+  levantier: { file: 'end-card-levantier.png', label: 'LEVANTIER DUBAI' },
+}
 
-async function getEndCardUrl(): Promise<string | null> {
-  if (cachedEndCardUrl) return cachedEndCardUrl
+// Cache uploaded end-card URLs by brand key for the lifetime of the server process
+const endCardCache: Record<string, string> = {}
+
+async function getEndCardUrl(brand: string): Promise<string | null> {
+  const entry = END_CARD_FILES[brand]
+  if (!entry) return null
+  if (endCardCache[brand]) return endCardCache[brand]
   try {
-    const filePath = path.join(process.cwd(), 'public', 'end-card.png')
+    const filePath = path.join(process.cwd(), 'public', entry.file)
     const buffer = await readFile(filePath)
     const blob = new Blob([new Uint8Array(buffer)], { type: 'image/png' })
-    const file = new File([blob], 'end-card.png', { type: 'image/png' })
-    cachedEndCardUrl = await fal.storage.upload(file)
-    return cachedEndCardUrl
+    const file = new File([blob], entry.file, { type: 'image/png' })
+    endCardCache[brand] = await fal.storage.upload(file)
+    return endCardCache[brand]
   } catch (e) {
-    console.warn('End-card upload skipped:', e instanceof Error ? e.message : e)
+    console.warn(`End-card upload skipped (${brand}):`, e instanceof Error ? e.message : e)
     return null
   }
 }
@@ -38,6 +45,7 @@ export async function POST(req: NextRequest) {
       duration,
       aspectRatio,
       generateAudio,
+      endCard,
     } = await req.json()
 
     if (!process.env.FAL_KEY) throw new Error('FAL_KEY is not set in environment variables')
@@ -56,7 +64,7 @@ export async function POST(req: NextRequest) {
       if (Number.isFinite(n) && n >= 4 && n <= 15) dur = n
     }
 
-    const endImageUrl = await getEndCardUrl()
+    const endImageUrl = await getEndCardUrl(endCard || 'bienitu')
     const REALISM_PREFIX = 'Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation. '
     const BOTTLE_LOCK_PREFIX = 'Bottle is a locked, photographed product: cap shape, silhouette, glass color, label position, and every letter on the label must stay pixel-identical to the input frame throughout the entire video. The bottle is never redrawn, only the world around it moves. '
 
@@ -68,8 +76,9 @@ export async function POST(req: NextRequest) {
     if (!built.toLowerCase().includes('photorealistic live-action')) {
       built = REALISM_PREFIX + built
     }
+    const endCardLabel = END_CARD_FILES[endCard]?.label ?? 'brand end-card'
     const finalPrompt = endImageUrl
-      ? `${built} In the final second, the scene fades smoothly to the BIENÍTU brand end-card on a black background.`
+      ? `${built} In the final second, the scene fades smoothly to the ${endCardLabel} brand end-card on a black background.`
       : built
 
     const baseInput: Record<string, unknown> = {

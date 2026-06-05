@@ -29,20 +29,21 @@ const PARFUM_TYPES = [
   { value: 'EAU DE PARFUM', label: 'EAU DE PARFUM' },
 ]
 
+const END_CARDS = [
+  { value: 'bienitu',   label: 'BIENÍTU' },
+  { value: 'levantier', label: 'LEVANTIER DUBAI' },
+]
+
 const CAMERA_STYLES = [
-  { value: 'auto',            label: '🎲 Auto (random each time)' },
-  { value: 'Slow push-in dolly',          label: '🔭 Slow Push-In Dolly' },
-  { value: 'Orbit half-circle',           label: '🔄 Orbit Half-Circle' },
-  { value: 'Crane descent',               label: '🏗 Crane Descent' },
-  { value: 'Pull-back reveal',            label: '↩ Pull-Back Reveal' },
-  { value: 'Tilt-up from ground',         label: '⬆ Tilt-Up from Ground' },
-  { value: 'Whip-pan reveal',             label: '⚡ Whip-Pan Reveal' },
-  { value: 'Tracking sidemove',           label: '↔ Tracking Sidemove' },
-  { value: 'Boom rise',                   label: '🚀 Boom Rise' },
-  { value: 'Rack focus pull',             label: '🎞 Rack Focus Pull' },
-  { value: 'Handheld documentary drift',  label: '🎥 Handheld Drift' },
-  { value: 'Diagonal arc',               label: '↗ Diagonal Arc' },
-  { value: 'Top-down to eye-level swoop', label: '🔽 Top-Down Swoop' },
+  { value: 'auto',              label: '🎲 Auto (random each time)' },
+  { value: 'Zoom in',           label: '🔍 Zoom In' },
+  { value: 'Zoom out',          label: '🔎 Zoom Out' },
+  { value: 'Dolly in',          label: '▶ Dolly In' },
+  { value: 'Dolly out',         label: '◀ Dolly Out' },
+  { value: 'Pan left to right', label: '→ Pan Left to Right' },
+  { value: 'Pan right to left', label: '← Pan Right to Left' },
+  { value: 'Tilt top to bottom', label: '↓ Tilt Top to Bottom' },
+  { value: 'Tilt bottom to top', label: '↑ Tilt Bottom to Top' },
 ]
 
 const VIDEO_DURATIONS = [
@@ -195,6 +196,7 @@ export default function Home() {
   const [seedanceDuration, setSeedanceDuration] = useState('auto')
   const [seedanceAspect, setSeedanceAspect] = useState<Aspect>('9:16')
   const [seedanceAudio, setSeedanceAudio] = useState(true)
+  const [endCard, setEndCard] = useState('bienitu')
 
   // Final video
   const [videoUrl, setVideoUrl] = useState('')
@@ -377,6 +379,7 @@ export default function Home() {
             duration: seedanceDuration,
             aspectRatio: seedanceAspect,
             generateAudio: seedanceAudio,
+            endCard,
           }),
         })
       } finally {
@@ -407,7 +410,7 @@ export default function Home() {
     setErrorMsg('')
     setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto'); setResolvedCameraStyle('')
+    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto'); setResolvedCameraStyle(''); setEndCard('bienitu')
     setVideoDuration('8'); setCustomScene('')
     setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
     setFirstFrameUrl('')
@@ -500,6 +503,9 @@ export default function Home() {
               </OptionCard>
               <OptionCard label="Camera Style">
                 <StyledSelect value={cameraStyle} onChange={setCameraStyle} options={CAMERA_STYLES} />
+              </OptionCard>
+              <OptionCard label="End Card">
+                <StyledSelect value={endCard} onChange={setEndCard} options={END_CARDS} />
               </OptionCard>
             </div>
 
