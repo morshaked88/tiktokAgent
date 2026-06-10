@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import styles from './page.module.css'
 
 /* ── Types ───────────────────────────────────────────────── */
+type AdMode = 'video' | 'image'
+
 type Step =
   | 'upload'
   | 'prompts-loading'
@@ -14,8 +16,18 @@ type Step =
   | 'video-loading'
   | 'video-done'
 
+type ImageStep =
+  | 'upload'
+  | 'prompts-loading'
+  | 'prompts-ready'
+  | 'generating'
+  | 'done'
+
 type Resolution = '480p' | '720p' | '1080p'
 type Aspect = 'auto' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'
+type ImageAspect = '1:1' | '3:4' | '9:16' | '16:9' | '4:3'
+
+type AdImage = { base64: string; mediaType: string; dataUrl: string }
 
 /* ── Constants ───────────────────────────────────────────── */
 const GENDERS = [
@@ -35,13 +47,13 @@ const END_CARDS = [
 ]
 
 const CAMERA_STYLES = [
-  { value: 'auto',              label: '🎲 Auto (random each time)' },
-  { value: 'Zoom in',           label: '🔍 Zoom In' },
-  { value: 'Zoom out',          label: '🔎 Zoom Out' },
-  { value: 'Dolly in',          label: '▶ Dolly In' },
-  { value: 'Dolly out',         label: '◀ Dolly Out' },
-  { value: 'Pan left to right', label: '→ Pan Left to Right' },
-  { value: 'Pan right to left', label: '← Pan Right to Left' },
+  { value: 'auto',               label: '🎲 Auto (random each time)' },
+  { value: 'Zoom in',            label: '🔍 Zoom In' },
+  { value: 'Zoom out',           label: '🔎 Zoom Out' },
+  { value: 'Dolly in',           label: '▶ Dolly In' },
+  { value: 'Dolly out',          label: '◀ Dolly Out' },
+  { value: 'Pan left to right',  label: '→ Pan Left to Right' },
+  { value: 'Pan right to left',  label: '← Pan Right to Left' },
   { value: 'Tilt top to bottom', label: '↓ Tilt Top to Bottom' },
   { value: 'Tilt bottom to top', label: '↑ Tilt Bottom to Top' },
 ]
@@ -88,6 +100,14 @@ const ASPECTS: { value: Aspect; label: string }[] = [
   { value: '4:3',  label: '4:3' },
   { value: '16:9', label: '16:9 — Landscape' },
   { value: '21:9', label: '21:9 — Cinematic' },
+]
+
+const IMAGE_AD_ASPECTS: { value: ImageAspect; label: string }[] = [
+  { value: '1:1',  label: '1:1 — Square' },
+  { value: '3:4',  label: '3:4 — Portrait' },
+  { value: '9:16', label: '9:16 — Stories / Reels' },
+  { value: '16:9', label: '16:9 — Landscape' },
+  { value: '4:3',  label: '4:3 — Horizontal' },
 ]
 
 /* ── UI helpers ──────────────────────────────────────────── */
@@ -160,98 +180,57 @@ function PromptCard({
 
 /* ── Main page ───────────────────────────────────────────── */
 export default function Home() {
-  // Flow state
-  const [step, setStep] = useState<Step>('upload')
+  // Mode
+  const [adMode, setAdMode] = useState<AdMode>('video')
+
+  // Shared form fields (reused across both modes)
+  const [brandName, setBrandName] = useState('')
+  const [perfumeName, setPerfumeName] = useState('')
+  const [gender, setGender] = useState('women')
+  const [parfumType, setParfumType] = useState('PARFUM')
+
+  // Shared UI state
   const [errorMsg, setErrorMsg] = useState('')
   const [progress, setProgress] = useState(5)
   const progressRef = useRef<NodeJS.Timeout | null>(null)
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Image
+  /* ─── VIDEO MODE state ─── */
+  const [step, setStep] = useState<Step>('upload')
   const [imageBase64, setImageBase64] = useState<string | null>(null)
   const [imageMediaType, setImageMediaType] = useState<string>('image/jpeg')
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  // Form (step 1)
-  const [brandName, setBrandName] = useState('')
-  const [perfumeName, setPerfumeName] = useState('')
-  const [gender, setGender] = useState('women')
-  const [parfumType, setParfumType] = useState('PARFUM')
   const [cameraStyle, setCameraStyle] = useState('auto')
   const [resolvedCameraStyle, setResolvedCameraStyle] = useState('')
   const [videoDuration, setVideoDuration] = useState('8')
   const [customScene, setCustomScene] = useState('')
-
-  // Generated prompts (step 3)
   const [positivePrompt, setPositivePrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [firstFramePrompt, setFirstFramePrompt] = useState('')
-
-  // First-frame image
   const [firstFrameUrl, setFirstFrameUrl] = useState('')
-
-  // Seedance video options (step 6)
   const [seedanceResolution, setSeedanceResolution] = useState<Resolution>('720p')
   const [seedanceDuration, setSeedanceDuration] = useState('auto')
   const [seedanceAspect, setSeedanceAspect] = useState<Aspect>('9:16')
   const [seedanceAudio, setSeedanceAudio] = useState(true)
   const [endCard, setEndCard] = useState('bienitu')
-
-  // Final video
   const [videoUrl, setVideoUrl] = useState('')
   const [audioDropped, setAudioDropped] = useState(false)
 
+  /* ─── IMAGE AD MODE state ─── */
+  const [imageStep, setImageStep] = useState<ImageStep>('upload')
+  const [adImages, setAdImages] = useState<AdImage[]>([])
+  const [imageAdScene, setImageAdScene] = useState('')
+  const [imageAdAspect, setImageAdAspect] = useState<ImageAspect>('1:1')
+  const [imageAdPrompt, setImageAdPrompt] = useState('')
+  const [imageAdResultUrl, setImageAdResultUrl] = useState('')
+  const [adDragging, setAdDragging] = useState(false)
+  const adFileRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => () => {
     if (progressRef.current) clearInterval(progressRef.current)
-  }, [])
-
-  /* ── Image upload ── */
-  const processFile = (file: File) => {
-    if (!file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = e => {
-      const originalUrl = e.target?.result as string
-      const originalB64 = originalUrl.split(',')[1]
-      const MAX_B64 = 4_500_000
-
-      if (originalB64.length <= MAX_B64) {
-        setImageDataUrl(originalUrl)
-        setImageBase64(originalB64)
-        setImageMediaType(file.type)
-        return
-      }
-
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const scale = Math.min(1, 3000 / Math.max(img.width, img.height))
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        const tryQ = (q: number) => canvas.toDataURL('image/jpeg', q)
-
-        let lo = 0.4, hi = 0.95, best = tryQ(0.95)
-        for (let i = 0; i < 7; i++) {
-          const mid = (lo + hi) / 2
-          const attempt = tryQ(mid)
-          if (attempt.split(',')[1].length <= MAX_B64) { lo = mid; best = attempt }
-          else hi = mid
-        }
-        setImageDataUrl(best)
-        setImageBase64(best.split(',')[1])
-        setImageMediaType('image/jpeg')
-      }
-      img.src = originalUrl
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) processFile(file)
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
   }, [])
 
   /* ── Progress helpers ── */
@@ -282,7 +261,61 @@ export default function Home() {
     }
   }
 
-  /* ── Step 1 → 3: Generate the 3 prompts ── */
+  /* ── Shared image compression ── */
+  const compressAndConvert = (
+    file: File,
+    onResult: (base64: string, mediaType: string, dataUrl: string) => void,
+  ) => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const originalUrl = e.target?.result as string
+      const originalB64 = originalUrl.split(',')[1]
+      const MAX_B64 = 4_500_000
+
+      if (originalB64.length <= MAX_B64) {
+        onResult(originalB64, file.type, originalUrl)
+        return
+      }
+
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const scale = Math.min(1, 3000 / Math.max(img.width, img.height))
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const tryQ = (q: number) => canvas.toDataURL('image/jpeg', q)
+        let lo = 0.4, hi = 0.95, best = tryQ(0.95)
+        for (let i = 0; i < 7; i++) {
+          const mid = (lo + hi) / 2
+          const attempt = tryQ(mid)
+          if (attempt.split(',')[1].length <= MAX_B64) { lo = mid; best = attempt }
+          else hi = mid
+        }
+        onResult(best.split(',')[1], 'image/jpeg', best)
+      }
+      img.src = originalUrl
+    }
+    reader.readAsDataURL(file)
+  }
+
+  /* ─── VIDEO MODE handlers ─── */
+  const processFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return
+    compressAndConvert(file, (base64, mediaType, dataUrl) => {
+      setImageDataUrl(dataUrl)
+      setImageBase64(base64)
+      setImageMediaType(mediaType)
+    })
+  }
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) processFile(file)
+  }, [])
+
   const generatePrompts = async () => {
     if (!imageBase64) return
     setStep('prompts-loading')
@@ -309,7 +342,6 @@ export default function Home() {
     }
   }
 
-  /* ── Step 3 → 5: Generate first-frame image ── */
   const generateFirstFrame = async () => {
     if (!imageBase64 || !firstFramePrompt) return
     setStep('frame-loading')
@@ -337,80 +369,137 @@ export default function Home() {
     }
   }
 
-  /* ── Step 5 → 6: Approve first frame, configure video ── */
   const approveFirstFrame = () => {
-    // Sync seedance duration default to user's intended video duration
     setSeedanceDuration(prev => prev === 'auto' ? videoDuration : prev)
     setStep('video-config')
   }
 
-  /* ── Step 6 → 8: Generate Seedance video ── */
   const generateVideo = async () => {
     if (!firstFrameUrl) return
     setStep('video-loading')
     setErrorMsg('')
-    startProgress(92, 3500)
+    startProgress(92, 4000)
+
+    const neg = negativePrompt.trim()
+    const positiveWithCamera =
+      resolvedCameraStyle && resolvedCameraStyle !== 'auto' &&
+      !positivePrompt.toLowerCase().includes(resolvedCameraStyle.toLowerCase())
+        ? `${positivePrompt} Camera move: ${resolvedCameraStyle}.`
+        : positivePrompt
+    const combinedPrompt = neg
+      ? `positivePrompt - ${positiveWithCamera} negativePrompt-${neg}`
+      : positiveWithCamera
+
+    // ── 1. Submit job (returns immediately with requestId) ──
+    let requestId: string
+    let audioUsed = seedanceAudio
+
     try {
-      const neg = negativePrompt.trim()
-
-      // Always append the resolved camera style name so Seedance knows the intended
-      // move even if the user edited the positive prompt and removed it.
-      const positiveWithCamera = resolvedCameraStyle && resolvedCameraStyle !== 'auto' &&
-        !positivePrompt.toLowerCase().includes(resolvedCameraStyle.toLowerCase())
-          ? `${positivePrompt} Camera move: ${resolvedCameraStyle}.`
-          : positivePrompt
-
-      const combinedPrompt = neg
-        ? `positivePrompt - ${positiveWithCamera} negativePrompt-${neg}`
-        : positiveWithCamera
-
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 420_000) // 7 min client timeout
-      let res: Response
-      try {
-        res = await fetch('/api/seedance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            imageUrl: firstFrameUrl,
-            prompt: combinedPrompt,
-            resolution: seedanceResolution,
-            duration: seedanceDuration,
-            aspectRatio: seedanceAspect,
-            generateAudio: seedanceAudio,
-            endCard,
-          }),
-        })
-      } finally {
-        clearTimeout(timeoutId)
-      }
-      const text = await res.text()
-      let data: Record<string, unknown>
-      try {
-        data = JSON.parse(text)
-      } catch {
-        throw new Error(`Server error: ${text.slice(0, 120)}`)
-      }
-      if (!res.ok || data.error) throw new Error(String(data.error) || 'Video generation failed')
-      stopProgress()
-      setVideoUrl(String(data.videoUrl))
-      setAudioDropped(seedanceAudio && data.audioUsed === false)
-      setStep('video-done')
+      const submitRes = await fetch('/api/seedance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: firstFrameUrl,
+          prompt: combinedPrompt,
+          resolution: seedanceResolution,
+          duration: seedanceDuration,
+          aspectRatio: seedanceAspect,
+          generateAudio: seedanceAudio,
+          endCard,
+        }),
+      })
+      const submitData = await submitRes.json()
+      if (!submitRes.ok || submitData.error) throw new Error(submitData.error || 'Submission failed')
+      requestId = submitData.requestId
+      audioUsed = submitData.audioUsed ?? seedanceAudio
     } catch (e: unknown) {
       stopProgress(0)
       setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
       setStep('video-config')
+      return
     }
+
+    // ── 2. Poll /api/seedance-poll every 5 s ──
+    const MAX_POLLS = 84 // ~7 minutes
+    let pollCount = 0
+    let retried = false
+
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
+    }
+
+    const poll = async () => {
+      pollCount++
+      if (pollCount > MAX_POLLS) {
+        stopPolling()
+        stopProgress(0)
+        setErrorMsg('Video generation timed out after 7 minutes. Please try again.')
+        setStep('video-config')
+        return
+      }
+
+      try {
+        const pollRes = await fetch(`/api/seedance-poll?requestId=${requestId}`)
+        const pollData = await pollRes.json()
+
+        if (pollData.pending) return // still processing
+
+        // Audio content-filter error — retry once without audio
+        if (!pollRes.ok && pollData.audioError && audioUsed && !retried) {
+          retried = true
+          audioUsed = false
+          const retryRes = await fetch('/api/seedance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageUrl: firstFrameUrl,
+              prompt: combinedPrompt,
+              resolution: seedanceResolution,
+              duration: seedanceDuration,
+              aspectRatio: seedanceAspect,
+              generateAudio: false,
+              endCard,
+            }),
+          })
+          const retryData = await retryRes.json()
+          if (!retryRes.ok || retryData.error) throw new Error(retryData.error || 'Retry failed')
+          requestId = retryData.requestId
+          pollCount = 0
+          return
+        }
+
+        if (!pollRes.ok || pollData.error) throw new Error(pollData.error || 'Video generation failed')
+
+        // Done
+        stopPolling()
+        stopProgress()
+        setVideoUrl(String(pollData.videoUrl))
+        setAudioDropped(seedanceAudio && !audioUsed)
+        setStep('video-done')
+      } catch (e: unknown) {
+        stopPolling()
+        stopProgress(0)
+        setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+        setStep('video-config')
+      }
+    }
+
+    pollIntervalRef.current = setInterval(poll, 5000)
+    poll() // immediate first check
   }
 
   const resetAll = () => {
     if (progressRef.current) clearInterval(progressRef.current)
+    if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null }
     setStep('upload')
     setErrorMsg('')
     setProgress(5)
     setImageBase64(null); setImageDataUrl(null); setImageMediaType('image/jpeg')
-    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM'); setCameraStyle('auto'); setResolvedCameraStyle(''); setEndCard('bienitu')
+    setBrandName(''); setPerfumeName(''); setGender('women'); setParfumType('PARFUM')
+    setCameraStyle('auto'); setResolvedCameraStyle(''); setEndCard('bienitu')
     setVideoDuration('8'); setCustomScene('')
     setPositivePrompt(''); setNegativePrompt(''); setFirstFramePrompt('')
     setFirstFrameUrl('')
@@ -419,15 +508,117 @@ export default function Home() {
     setVideoUrl('')
   }
 
-  /* ── Render ──────────────────────────────────────────────── */
-  const showInitialForm = step === 'upload'
-  const showPromptsLoading = step === 'prompts-loading'
-  const showPromptsReady = step === 'prompts-ready' || step === 'frame-loading'
-  const showFrameLoading = step === 'frame-loading'
-  const showFrameReady = step === 'frame-ready'
-  const showVideoConfig = step === 'video-config' || step === 'video-loading'
-  const showVideoLoading = step === 'video-loading'
-  const showVideoDone = step === 'video-done'
+  /* ─── IMAGE AD MODE handlers ─── */
+  const processAdFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return
+    compressAndConvert(file, (base64, mediaType, dataUrl) => {
+      setAdImages(prev => {
+        if (prev.length >= 4) return prev
+        return [...prev, { base64, mediaType, dataUrl }]
+      })
+    })
+  }
+
+  const processAdFiles = (files: FileList | File[]) => {
+    const arr = Array.from(files)
+    arr.forEach(f => processAdFile(f))
+  }
+
+  const removeAdImage = (index: number) => {
+    setAdImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const onAdDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setAdDragging(false)
+    processAdFiles(e.dataTransfer.files)
+  }, [adImages])
+
+  const generateImagePrompts = async () => {
+    if (!adImages.length) return
+    setImageStep('prompts-loading')
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/image-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: adImages.map(img => ({ base64: img.base64, mediaType: img.mediaType })),
+          brandName, perfumeName, gender, parfumType,
+          customScene: imageAdScene,
+          aspectRatio: imageAdAspect,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'Prompt generation failed')
+      setImageAdPrompt(data.adPrompt)
+      setImageStep('prompts-ready')
+    } catch (e: unknown) {
+      setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+      setImageStep('upload')
+    }
+  }
+
+  const generateImageAd = async () => {
+    if (!adImages.length || !imageAdPrompt) return
+    setImageStep('generating')
+    setErrorMsg('')
+    startProgress(90, 1800)
+    try {
+      const res = await fetch('/api/image-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: adImages.map(img => ({ base64: img.base64, mediaType: img.mediaType })),
+          prompt: imageAdPrompt,
+          aspectRatio: imageAdAspect,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'Image generation failed')
+      stopProgress()
+      setImageAdResultUrl(data.imageUrl)
+      setImageStep('done')
+    } catch (e: unknown) {
+      stopProgress(0)
+      setErrorMsg(e instanceof Error ? e.message : 'Unknown error')
+      setImageStep('prompts-ready')
+    }
+  }
+
+  const resetImageAd = () => {
+    if (progressRef.current) clearInterval(progressRef.current)
+    setImageStep('upload')
+    setAdImages([])
+    setImageAdScene('')
+    setImageAdAspect('1:1')
+    setImageAdPrompt('')
+    setImageAdResultUrl('')
+    setErrorMsg('')
+    setProgress(5)
+  }
+
+  const switchMode = (mode: AdMode) => {
+    if (mode === adMode) return
+    setAdMode(mode)
+    setErrorMsg('')
+  }
+
+  /* ── Render helpers ── */
+  const showVideoInitialForm = adMode === 'video' && step === 'upload'
+  const showVideoPromptsLoading = adMode === 'video' && step === 'prompts-loading'
+  const showVideoPromptsReady = adMode === 'video' && (step === 'prompts-ready' || step === 'frame-loading')
+  const showVideoFrameLoading = adMode === 'video' && step === 'frame-loading'
+  const showVideoFrameReady = adMode === 'video' && step === 'frame-ready'
+  const showVideoConfig = adMode === 'video' && (step === 'video-config' || step === 'video-loading')
+  const showVideoLoading = adMode === 'video' && step === 'video-loading'
+  const showVideoDone = adMode === 'video' && step === 'video-done'
+
+  const showImageForm = adMode === 'image' && imageStep === 'upload'
+  const showImagePromptsLoading = adMode === 'image' && imageStep === 'prompts-loading'
+  const showImagePromptsReady = adMode === 'image' && imageStep === 'prompts-ready'
+  const showImageGenerating = adMode === 'image' && imageStep === 'generating'
+  const showImageDone = adMode === 'image' && imageStep === 'done'
 
   return (
     <main className={styles.main}>
@@ -435,17 +626,37 @@ export default function Home() {
 
         {/* ── Header ── */}
         <header className={styles.header}>
-          <div className={styles.logoTag}>AI Perfume Video Studio</div>
+          <div className={styles.logoTag}>AI Perfume Ad Studio</div>
           <h1 className={styles.h1}>Scent &amp; <em>Scroll</em></h1>
-          <p className={styles.subtitle}>Image → Cinematic Video, powered by Seedance 2.0</p>
+          <p className={styles.subtitle}>Powered by Claude · Flux Kontext · Seedance 2.0</p>
           <div className={styles.badgeRow}>
             <span className={`${styles.badge} ${styles.badgeClaude}`}>✦ Prompts by Claude</span>
-            <span className={`${styles.badge} ${styles.badgeRunway}`}>Seedance 2.0 · Nano Banana</span>
+            <span className={`${styles.badge} ${styles.badgeRunway}`}>Flux Kontext · Seedance 2.0</span>
           </div>
         </header>
 
-        {/* ── Step 1: Upload + form ── */}
-        {showInitialForm && (
+        {/* ── Mode Toggle ── */}
+        <div className={styles.modeToggleRow}>
+          <button
+            className={`${styles.modeToggleBtn} ${adMode === 'video' ? styles.modeToggleBtnActiveVideo : ''}`}
+            onClick={() => switchMode('video')}
+          >
+            🎬 Video Ad
+          </button>
+          <button
+            className={`${styles.modeToggleBtn} ${adMode === 'image' ? styles.modeToggleBtnActiveImage : ''}`}
+            onClick={() => switchMode('image')}
+          >
+            🖼 Image Ad
+          </button>
+        </div>
+
+        {/* ════════════════════════════════
+            VIDEO MODE
+        ════════════════════════════════ */}
+
+        {/* ── Video Step 1: Upload + form ── */}
+        {showVideoInitialForm && (
           <>
             <div
               className={`${styles.uploadZone} ${dragging ? styles.uploadZoneDragging : ''} ${imageBase64 ? styles.uploadZoneHasImage : ''}`}
@@ -532,16 +743,16 @@ export default function Home() {
           </>
         )}
 
-        {/* ── Step 2: Prompts loading ── */}
-        {showPromptsLoading && (
+        {/* ── Video Step 2: Prompts loading ── */}
+        {showVideoPromptsLoading && (
           <div className={styles.loadingCenter}>
             <div className={`${styles.ring} spin`} />
             <p className={styles.loadingText}>Claude is crafting your prompts...</p>
           </div>
         )}
 
-        {/* ── Step 3: Prompts ready + first-frame loading overlay ── */}
-        {showPromptsReady && (
+        {/* ── Video Step 3: Prompts ready ── */}
+        {showVideoPromptsReady && (
           <div className={styles.results}>
             <div className={styles.resultsHeader}>
               <h2 className={styles.resultsTitle}>
@@ -569,11 +780,11 @@ export default function Home() {
 
             {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
 
-            {showFrameLoading ? (
+            {showVideoFrameLoading ? (
               <div className={styles.videoStatusCard}>
                 <div className={`${styles.videoRing} spin`} />
                 <p className={styles.videoStatusTitle}>Generating first frame...</p>
-                <p className={styles.videoStatusSub}>Nano Banana is editing your bottle into the scene — 10–30 seconds</p>
+                <p className={styles.videoStatusSub}>Flux Kontext is compositing your bottle into the scene — 10–30 seconds</p>
                 <div className={styles.progressBar}>
                   <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                 </div>
@@ -590,8 +801,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Step 5: First frame ready — approve or regenerate ── */}
-        {showFrameReady && (
+        {/* ── Video Step 5: First frame ready ── */}
+        {showVideoFrameReady && (
           <div className={styles.results}>
             <div className={styles.resultsHeader}>
               <h2 className={styles.resultsTitle}>Your <em>First Frame</em></h2>
@@ -624,7 +835,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Step 6: Video config + loading ── */}
+        {/* ── Video Step 6: Video config + loading ── */}
         {showVideoConfig && (
           <div className={styles.results}>
             <div className={styles.resultsHeader}>
@@ -680,7 +891,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Step 8: Video done ── */}
+        {/* ── Video Step 8: Done ── */}
         {showVideoDone && videoUrl && (
           <div className={styles.results}>
             <div className={styles.resultsHeader}>
@@ -700,6 +911,199 @@ export default function Home() {
                 <button className={styles.regenBtn} onClick={() => setStep('video-config')}>↻ Regenerate</button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════
+            IMAGE AD MODE
+        ════════════════════════════════ */}
+
+        {/* ── Image Step 1: Upload + form ── */}
+        {showImageForm && (
+          <>
+            {/* Multi-image upload zone */}
+            <div className={styles.adUploadSection}>
+              {adImages.length === 0 ? (
+                <div
+                  className={`${styles.uploadZone} ${adDragging ? styles.uploadZoneDragging : ''}`}
+                  onDragOver={e => { e.preventDefault(); setAdDragging(true) }}
+                  onDragLeave={() => setAdDragging(false)}
+                  onDrop={onAdDrop}
+                  onClick={() => adFileRef.current?.click()}
+                >
+                  <span className={styles.uploadEmoji}>🌸</span>
+                  <p className={styles.uploadTitle}>Drop perfume bottle photos here</p>
+                  <p className={styles.uploadHint}>Up to 4 bottles · JPG, PNG, WEBP</p>
+                  <button type="button" className={styles.uploadBtn} onClick={e => { e.stopPropagation(); adFileRef.current?.click() }}>
+                    Choose Images
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`${styles.adImagesZone} ${adDragging ? styles.uploadZoneDragging : ''}`}
+                  onDragOver={e => { e.preventDefault(); setAdDragging(true) }}
+                  onDragLeave={() => setAdDragging(false)}
+                  onDrop={onAdDrop}
+                >
+                  <div className={styles.adImagesGrid}>
+                    {adImages.map((img, i) => (
+                      <div key={i} className={styles.adImageThumb}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.dataUrl} alt={`Bottle ${i + 1}`} className={styles.adImageImg} />
+                        <button
+                          className={styles.adImageRemoveBtn}
+                          onClick={() => removeAdImage(i)}
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    {adImages.length < 4 && (
+                      <button
+                        className={styles.adImageAddBtn}
+                        onClick={() => adFileRef.current?.click()}
+                        title="Add another bottle"
+                      >
+                        <span className={styles.adImageAddIcon}>+</span>
+                        <span className={styles.adImageAddLabel}>Add bottle</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className={styles.adImagesHint}>{adImages.length}/4 bottles · drag more to add</p>
+                </div>
+              )}
+              <input
+                ref={adFileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => { if (e.target.files) { processAdFiles(e.target.files); e.target.value = '' } }}
+              />
+            </div>
+
+            {/* Form fields */}
+            <div className={styles.optionsGrid}>
+              <OptionCard label="Brand Name">
+                <StyledInput value={brandName} onChange={setBrandName} placeholder="e.g. Chanel, BIENÍTU..." />
+              </OptionCard>
+              <OptionCard label="Perfume Name">
+                <StyledInput value={perfumeName} onChange={setPerfumeName} placeholder="e.g. Midnight Oud, No. 5..." />
+              </OptionCard>
+              <OptionCard label="Gender">
+                <StyledSelect value={gender} onChange={setGender} options={GENDERS} />
+              </OptionCard>
+              <OptionCard label="Parfum Type">
+                <StyledSelect value={parfumType} onChange={setParfumType} options={PARFUM_TYPES} />
+              </OptionCard>
+              <OptionCard label="Output Format">
+                <StyledSelect value={imageAdAspect} onChange={setImageAdAspect} options={IMAGE_AD_ASPECTS} />
+              </OptionCard>
+            </div>
+
+            <div className={styles.extraInstructionsWrap}>
+              <div className={styles.optionLabel}>Scene Description <span className={styles.optionalTag}>(optional)</span></div>
+              <textarea
+                className={styles.textarea}
+                value={imageAdScene}
+                onChange={e => setImageAdScene(e.target.value)}
+                placeholder="Describe the setting — e.g. marble countertop with roses, sunset on a yacht deck, dark velvet surface with gold accents... Leave empty and the AI invents one."
+                rows={3}
+              />
+            </div>
+
+            {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
+
+            <button
+              className={styles.generateBtn}
+              disabled={adImages.length === 0}
+              onClick={generateImagePrompts}
+            >
+              ✦ Generate Ad Prompt
+            </button>
+          </>
+        )}
+
+        {/* ── Image Step 2: Prompts loading ── */}
+        {showImagePromptsLoading && (
+          <div className={styles.loadingCenter}>
+            <div className={`${styles.ring} spin`} />
+            <p className={styles.loadingText}>Claude is crafting your ad prompt...</p>
+          </div>
+        )}
+
+        {/* ── Image Step 3: Prompt ready ── */}
+        {showImagePromptsReady && (
+          <div className={styles.results}>
+            <div className={styles.resultsHeader}>
+              <h2 className={styles.resultsTitle}>
+                Your <em>Ad Prompt</em>
+                {(brandName || perfumeName) && (
+                  <span className={styles.resultsBrand}> — {[brandName, perfumeName].filter(Boolean).join(' ')}</span>
+                )}
+              </h2>
+              <button className={styles.newBtn} onClick={resetImageAd}>↩ Start Over</button>
+            </div>
+
+            <p className={styles.platformNote} style={{ marginBottom: 16 }}>
+              Edit the prompt below before generating your ad image.
+            </p>
+
+            <PromptCard title="Image Ad Prompt" icon="🖼" value={imageAdPrompt} onChange={setImageAdPrompt} />
+
+            {errorMsg && <div className={styles.errorMsg}>⚠ {errorMsg}</div>}
+
+            <button
+              className={styles.generateImageAdBtn}
+              disabled={!imageAdPrompt}
+              onClick={generateImageAd}
+            >
+              ✦ Generate Image Ad
+            </button>
+            <button className={styles.newBtn} style={{ width: '100%', padding: '12px', marginTop: 8 }} onClick={() => setImageStep('upload')}>
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {/* ── Image Step 4: Generating ── */}
+        {showImageGenerating && (
+          <div className={styles.videoStatusCard}>
+            <div className={`${styles.videoRing} spin`} style={{ borderTopColor: '#b388ff' }} />
+            <p className={styles.videoStatusTitle}>Generating your ad image...</p>
+            <p className={styles.videoStatusSub}>Flux Kontext is compositing your bottles — 15–45 seconds</p>
+            <div className={styles.progressBar}>
+              <div className={styles.progressFill} style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #7c3aed, #b388ff)' }} />
+            </div>
+            <p className={styles.progressLabel}>{progress}%</p>
+          </div>
+        )}
+
+        {/* ── Image Step 5: Done ── */}
+        {showImageDone && imageAdResultUrl && (
+          <div className={styles.results}>
+            <div className={styles.resultsHeader}>
+              <h2 className={styles.resultsTitle}>Your <em>Image Ad</em></h2>
+              <button className={styles.newBtn} onClick={resetImageAd}>↩ Start Over</button>
+            </div>
+
+            <div className={styles.videoResultCard}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageAdResultUrl} alt="Generated ad image" className={styles.videoEl} style={{ objectFit: 'contain', background: '#000' }} />
+              <div className={styles.videoActions}>
+                <button className={styles.dlBtn} onClick={() => downloadFile(imageAdResultUrl, 'perfume-ad.jpg')}>⬇ Download Image</button>
+                <button className={styles.regenBtn} onClick={generateImageAd}>↻ Regenerate</button>
+              </div>
+            </div>
+
+            <button
+              className={styles.newBtn}
+              style={{ width: '100%', padding: '12px', marginTop: 16 }}
+              onClick={() => setImageStep('prompts-ready')}
+            >
+              ← Edit Prompt
+            </button>
           </div>
         )}
 
