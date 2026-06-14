@@ -1,4 +1,4 @@
-// File: /Users/devdev/Downloads/scent-scroll/app/page.tsx
+// File: /Users/devdev/ads-create/tiktokAgent/app/page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

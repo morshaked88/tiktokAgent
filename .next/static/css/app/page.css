@@ -928,6 +928,199 @@
   box-shadow: 0 8px 30px rgba(66,133,244,0.35);
 }
 
+/* ── Mode toggle ── */
+.page_modeToggleRow__Uucx7 {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 6px;
+}
+
+.page_modeToggleBtn__29CRZ {
+  flex: 1 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page_modeToggleBtn__29CRZ:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
+}
+
+.page_modeToggleBtnActiveVideo__WlqoW {
+  background: rgba(201,168,76,0.15);
+  color: var(--gold-light);
+  font-weight: 600;
+  border: 1px solid rgba(201,168,76,0.35);
+}
+
+.page_modeToggleBtnActiveImage__mPttg {
+  background: rgba(179,136,255,0.15);
+  color: #b388ff;
+  font-weight: 600;
+  border: 1px solid rgba(179,136,255,0.35);
+}
+
+/* ── Image ad upload section ── */
+.page_adUploadSection__Mhprl {
+  margin-bottom: 24px;
+}
+
+.page_adImagesZone__6e8rt {
+  background: var(--surface);
+  border: 1.5px solid rgba(179,136,255,0.25);
+  border-radius: 20px;
+  padding: 20px;
+  transition: border-color 0.3s;
+}
+
+.page_adImagesZone__6e8rt:hover {
+  border-color: rgba(179,136,255,0.4);
+}
+
+.page_adImagesGrid__79VuQ {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.page_adImageThumb__PyxgI {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--dark3);
+  border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.page_adImageImg__1gV2z {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.page_adImageRemoveBtn__W4R_c {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.page_adImageRemoveBtn__W4R_c:hover {
+  background: rgba(255,45,85,0.8);
+}
+
+.page_adImageAddBtn__INFu3 {
+  width: 120px;
+  height: 160px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1.5px dashed rgba(179,136,255,0.3);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.page_adImageAddBtn__INFu3:hover {
+  border-color: rgba(179,136,255,0.6);
+  color: #b388ff;
+  background: rgba(179,136,255,0.05);
+}
+
+.page_adImageAddIcon__EUB3j {
+  font-size: 28px;
+  font-weight: 200;
+  line-height: 1;
+}
+
+.page_adImageAddLabel__m0FXx {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.page_adImagesHint__5sAIz {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Image ad generate button ── */
+.page_generateImageAdBtn__0qolE {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #7c3aed, #b388ff);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.page_generateImageAdBtn__0qolE:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(179,136,255,0.35);
+}
+
+.page_generateImageAdBtn__0qolE:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Responsive: image thumbs on mobile ── */
+@media (max-width: 600px) {
+  .page_adImageThumb__PyxgI,
+  .page_adImageAddBtn__INFu3 {
+    width: 90px;
+    height: 120px;
+  }
+}
+
 /* ── Seedance generate button ── */
 .page_generateSeedanceBtn__XMFOi {
   width: 100%;
