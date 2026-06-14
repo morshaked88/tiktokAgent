@@ -254,8 +254,10 @@ export default function Home() {
       const a = document.createElement('a')
       a.href = objectUrl
       a.download = filename
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(objectUrl)
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
     } catch {
       window.open(url, '_blank')
     }
