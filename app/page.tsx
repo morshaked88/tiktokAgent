@@ -44,6 +44,7 @@ const PARFUM_TYPES = [
 const END_CARDS = [
   { value: 'bienitu',   label: 'BIENÍTU' },
   { value: 'levantier', label: 'LEVANTIER DUBAI' },
+  { value: 'lelin',     label: 'LELIN' },
 ]
 
 const CAMERA_STYLES = [

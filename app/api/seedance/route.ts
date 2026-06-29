@@ -16,6 +16,7 @@ const ASPECTS: Aspect[] = ['auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']
 const END_CARD_FILES: Record<string, { file: string; label: string }> = {
   bienitu:   { file: 'end-card.png',          label: 'BIENÍTU' },
   levantier: { file: 'end-card-levantier.png', label: 'LEVANTIER DUBAI' },
+  lelin:     { file: 'end-card-lelin.png',     label: 'LELIN' },
 }
 
 const endCardCache: Record<string, string> = {}
