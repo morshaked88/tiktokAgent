@@ -14,13 +14,6 @@ const CREATIVE_FORMATS: {
   firstFrame: string
 }[] = [
   {
-    name: 'Hand grab & spritz',
-    hook: 'Within the first second, an elegant hand with manicured nails enters frame and cups the base of the bottle lightly, lifting it just off the surface without ever gripping or covering the label.',
-    motion: 'The hand keeps the bottle fully visible and undistorted as it rises, finger presses the nozzle, and a fine burst of mist erupts beside the label, backlit so every droplet glows. A second slower spray drifts through the light as the bottle is set back down facing camera, silhouette unchanged throughout.',
-    camera: 'Handheld close-up with subtle natural shake, racking focus from hand to label, settling on a tight hero shot as the mist dissipates.',
-    firstFrame: 'Bottle standing on a marble vanity or dresser edge, slightly off-center, warm directional light raking across it, real bathroom or bedroom depth behind.',
-  },
-  {
     name: 'Splash drop',
     hook: 'Within the first second, heavy water droplets rain down around the bottle and a slow-motion crown splash erupts at its base.',
     motion: 'Ripples radiate outward across a shallow mirror of dark water, droplets bounce off the glass shoulders and slide down the facets, the surface calms to a perfect reflection.',
@@ -169,6 +162,7 @@ Hard rules:
   - Live-action realism only. Never use the words: CGI, render, 3D, animated, cartoon, illustration, digital art.
   - Action and camera as present-tense verbs ("a hand lifts the bottle", "camera whips around").
   - Hands and people may appear and interact with the bottle, but the bottle itself is never deformed by the interaction.
+  - NEVER depict the bottle's nozzle spraying, misting, or dispensing perfume, and never show a hand pressing or triggering the spray — no assigned format calls for this action; do not invent it even though perfume ads often show it.
   - Prefer 3/4 angle on the bottle, not head-on.
   - No spoken words, no subtitles, no on-screen text other than the label.
 
@@ -179,6 +173,7 @@ Comma-separated, max 400 chars. MUST include (target the exact failure modes —
   bottle cap changing shape, cap becoming a different design, cap warping, cap morphing, cap re-rendered,
   bottle silhouette changing, bottle outline distorting, bottle proportions changing, bottle re-designed,
   glass color shifting, label repositioning, label resizing,
+  hand spraying perfume, nozzle dispensing mist, perfume mist, spray bottle action,
   watermark, jitter, low resolution, deformed hands.
 
 Guidelines for firstFramePrompt:

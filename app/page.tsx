@@ -49,7 +49,6 @@ const END_CARDS = [
 
 const CAMERA_STYLES = [
   { value: 'auto',                 label: '🎲 Auto (random each time)' },
-  { value: 'Hand grab & spritz',   label: '🖐 Hand Grab & Spritz' },
   { value: 'Splash drop',          label: '💧 Splash Drop' },
   { value: 'Fast orbit reveal',    label: '🌀 Fast Orbit Reveal' },
   { value: 'World transformation', label: '🌆 World Transformation' },
