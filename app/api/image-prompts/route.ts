@@ -14,7 +14,10 @@ export async function POST(req: NextRequest) {
     const gen = (gender || 'unisex').trim()
     const type = (parfumType || 'PARFUM').trim().toUpperCase()
     const productLabel = [brand, perfume].filter(Boolean).join(' — ') || 'the perfume on the bottle'
-    const labelText = [brand, perfume, type].filter(Boolean).join(' · ')
+    // Describes the label's separate text lines for the model to read — never
+    // joined with a punctuation glyph (e.g. "·"), or the model renders that
+    // character as if printed on the bottle.
+    const labelLinesDescription = [brand, perfume, type].filter(Boolean).map(l => `"${l}"`).join(' and ')
     const scene = (customScene || '').trim()
     const aspect = aspectRatio || '1:1'
     const bottleCount = images.length
@@ -39,15 +42,15 @@ export async function POST(req: NextRequest) {
       text: `Create a single image editing prompt for a perfume ad.
 
 Product: ${productLabel} for ${gen}
-Label text: "${labelText}"
+Label shows these separate lines exactly as on the reference image: ${labelLinesDescription}
 Output aspect ratio: ${aspect}
 ${sceneLine}
 
 CRITICAL RULES:
-1. BOTTLE PRESERVATION: Every bottle's cap shape, silhouette, glass color, label position, and every letter must remain pixel-identical to the reference. Phrase the prompt as a BACKGROUND REPLACEMENT — never imply redrawing the bottle.
+1. BOTTLE PRESERVATION: Every bottle's cap shape, silhouette, material and opacity (do not turn an opaque bottle transparent or vice versa), label position, and every letter must remain pixel-identical to the reference. Phrase the prompt as a BACKGROUND REPLACEMENT — never imply redrawing the bottle.
 2. COMPOSITION: ${bottleNote} Background is the scene. No cropping — full bottle visible from base to cap tip.
 3. PHOTOREALISM: Must read as a real high-end commercial photograph. Use anchors: "product photography", "shot on medium format camera", "natural light", "real location". No CGI, no 3D render.
-4. LABEL: Reference the exact label text "${labelText}". Every letter stays sharp.
+4. LABEL: Reference the label lines ${labelLinesDescription} exactly as on the original — no added dots, bullets, or separator characters between them. Every letter stays sharp.
 
 Write the adPrompt as a direct editing instruction starting with "Change the background to [scene]". Keep it 200–400 characters. End with a label-lock sentence.
 

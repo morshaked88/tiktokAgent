@@ -68,7 +68,12 @@ export async function POST(req: NextRequest) {
     const endImageUrl = await getEndCardUrl(endCard || 'bienitu')
 
     const REALISM_PREFIX = 'Photorealistic live-action footage, real people and real materials, shot on a real cinema camera — not CGI, not 3D render, not animation. '
-    const BOTTLE_LOCK_PREFIX = 'Bottle is a locked, photographed product: cap shape, silhouette, glass color, label position, and every letter on the label must stay pixel-identical to the input frame throughout the entire video. The bottle is never redrawn, only the world around it moves. '
+    // Explicit asset-role assignment (Seedance responds best when the input
+    // image's role is stated): start frame = composed scene + locked product.
+    // This is the ONLY place enforcing bottle-lock at generation time, since
+    // Seedance's image-to-video endpoint has no negative-prompt parameter —
+    // it must carry the full weight of preventing geometry/label drift alone.
+    const BOTTLE_LOCK_PREFIX = 'TOP PRIORITY, OVERRIDES ALL OTHER INSTRUCTIONS: the input image is the start frame and the product reference. The perfume bottle in it is a rigid, locked, photographed product — its cap shape, silhouette, material, opacity, label position, and every letter on the label stay pixel-identical to that start frame in every single frame of the video, never warped, bent, squashed, stretched, or redrawn, and never turned from opaque into transparent (or transparent into opaque). Any hand, fabric, or liquid may only touch or pass beside the outside of the bottle — never grip it tightly, never wrap around it, never obscure the label or silhouette. Only the world, light, people, and materials around the bottle move; the bottle itself never changes. '
 
     let built = String(prompt)
     if (!built.toLowerCase().includes('locked, photographed product')) {

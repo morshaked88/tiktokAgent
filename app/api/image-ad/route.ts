@@ -10,7 +10,7 @@ const KONTEXT_ASPECTS: KontextAspect[] = [
   '21:9', '16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '9:21',
 ]
 
-const ENFORCED_SUFFIX = ' PERFECT BOTTLE PRESERVATION: change ONLY the background and surroundings. Every perfume bottle from the reference images — including exact silhouette, cap shape, glass color, label position, label text, every letter, and all proportions — must remain 100% pixel-identical to the input. Do not redraw, redesign, or reinterpret any part of the bottles. FULL BOTTLE VISIBILITY: the ENTIRE bottle must be visible — from base to cap tip — never cropped or clipped at any edge. PHOTOREALISTIC: high-end commercial product photography, natural light, real camera — not CGI, not 3D, not illustration.'
+const ENFORCED_SUFFIX = ' PERFECT BOTTLE PRESERVATION: change ONLY the background and surroundings. Every perfume bottle from the reference images — including exact silhouette, cap shape, label position, label text, every letter, and all proportions — must remain 100% pixel-identical to the input. MATERIAL AND OPACITY LOCK: match each bottle\'s exact material and opacity as photographed — if opaque or solid-colored, it must stay fully opaque, never turned into clear or translucent glass; if clear or tinted glass, keep that exact transparency and tint. Do not redraw, redesign, or reinterpret any part of the bottles. Do not add dots, bullets, or separator characters to the label text that are not on the original label. FULL BOTTLE VISIBILITY: the ENTIRE bottle must be visible — from base to cap tip — never cropped or clipped at any edge. PHOTOREALISTIC: high-end commercial product photography, natural light, real camera — not CGI, not 3D, not illustration.'
 
 export async function POST(req: NextRequest) {
   try {

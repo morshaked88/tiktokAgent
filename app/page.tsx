@@ -48,15 +48,15 @@ const END_CARDS = [
 ]
 
 const CAMERA_STYLES = [
-  { value: 'auto',               label: '🎲 Auto (random each time)' },
-  { value: 'Zoom in',            label: '🔍 Zoom In' },
-  { value: 'Zoom out',           label: '🔎 Zoom Out' },
-  { value: 'Dolly in',           label: '▶ Dolly In' },
-  { value: 'Dolly out',          label: '◀ Dolly Out' },
-  { value: 'Pan left to right',  label: '→ Pan Left to Right' },
-  { value: 'Pan right to left',  label: '← Pan Right to Left' },
-  { value: 'Tilt top to bottom', label: '↓ Tilt Top to Bottom' },
-  { value: 'Tilt bottom to top', label: '↑ Tilt Bottom to Top' },
+  { value: 'auto',                 label: '🎲 Auto (random each time)' },
+  { value: 'Hand grab & spritz',   label: '🖐 Hand Grab & Spritz' },
+  { value: 'Splash drop',          label: '💧 Splash Drop' },
+  { value: 'Fast orbit reveal',    label: '🌀 Fast Orbit Reveal' },
+  { value: 'World transformation', label: '🌆 World Transformation' },
+  { value: 'Silk reveal',          label: '🎗 Silk Reveal' },
+  { value: 'Macro whip',           label: '🔬 Macro Whip' },
+  { value: 'UGC vanity',           label: '🤳 UGC Vanity' },
+  { value: 'Petal storm',          label: '🌸 Petal Storm' },
 ]
 
 const VIDEO_DURATIONS = [
@@ -383,15 +383,11 @@ export default function Home() {
     setErrorMsg('')
     startProgress(92, 4000)
 
-    const neg = negativePrompt.trim()
-    const positiveWithCamera =
-      resolvedCameraStyle && resolvedCameraStyle !== 'auto' &&
-      !positivePrompt.toLowerCase().includes(resolvedCameraStyle.toLowerCase())
-        ? `${positivePrompt} Camera move: ${resolvedCameraStyle}.`
-        : positivePrompt
-    const combinedPrompt = neg
-      ? `positivePrompt - ${positiveWithCamera} negativePrompt-${neg}`
-      : positiveWithCamera
+    // Seedance's image-to-video endpoint has no negative-prompt parameter —
+    // appending the negative list to the prompt would inject the failure-mode
+    // vocabulary ("label warping", "deformed hands") as generation content.
+    // Send only the positive motion prompt.
+    const combinedPrompt = positivePrompt.trim()
 
     // ── 1. Submit job (returns immediately with requestId) ──
     let requestId: string
@@ -715,7 +711,7 @@ export default function Home() {
               <OptionCard label="Video Duration">
                 <StyledSelect value={videoDuration} onChange={setVideoDuration} options={VIDEO_DURATIONS} />
               </OptionCard>
-              <OptionCard label="Camera Style">
+              <OptionCard label="Creative Style">
                 <StyledSelect value={cameraStyle} onChange={setCameraStyle} options={CAMERA_STYLES} />
               </OptionCard>
               <OptionCard label="End Card">
@@ -772,7 +768,6 @@ export default function Home() {
             </p>
 
             <PromptCard title="Positive Prompt" icon="✦" value={positivePrompt} onChange={setPositivePrompt} />
-            <PromptCard title="Negative Prompt" icon="✕" value={negativePrompt} onChange={setNegativePrompt} />
             <PromptCard title="First-Frame Image Prompt" icon="🖼" value={firstFramePrompt} onChange={setFirstFramePrompt} />
 
             <div className={styles.optionsGrid}>

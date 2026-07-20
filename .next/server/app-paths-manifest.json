@@ -1,3 +1,7 @@
 {
-  "/page": "app/page.js"
+  "/api/first-frame/route": "app/api/first-frame/route.js",
+  "/api/seedance/route": "app/api/seedance/route.js",
+  "/api/prompts/route": "app/api/prompts/route.js",
+  "/page": "app/page.js",
+  "/api/seedance-poll/route": "app/api/seedance-poll/route.js"
 }
