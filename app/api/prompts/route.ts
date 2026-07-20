@@ -103,11 +103,25 @@ export async function POST(req: NextRequest) {
       ? `Scene the creator wants: "${scene}"`
       : 'The creator has no scene preference — invent a compelling cinematic concept that fits the perfume.'
 
-    // Use the user's chosen creative format, or pick randomly when "auto"
-    const chosen = cameraStyle && cameraStyle !== 'auto'
+    // Use the user's chosen creative format, derive one from their scene
+    // description ("scene" mode), or pick randomly when "auto".
+    const sceneDerivedStyle = {
+      name: 'Derived from scene description',
+      hook: scene
+        ? `Invent a hook event that fires within the first second, built entirely from the creator's own scene description: "${scene}". Read that description for the action or moment it implies and stage it as the opening event — do not fall back on a slow static camera drift.`
+        : 'The creator picked "derive from my scene description" but left it empty — invent a strong, concrete hook event for a generic but compelling perfume concept instead.',
+      motion: "Continue the scene's implied action naturally across the remaining seconds — materials, light, weather, or people in the scene keep reacting believably. Something must keep visibly happening, not just the camera moving past a still subject.",
+      camera: "Choose whichever camera energy (push-in, orbit, pan, handheld, whip-pan, crane) best matches the mood and pace of the creator's scene.",
+      firstFrame: scene
+        ? `Compose the first frame directly from the creator's scene description: "${scene}", framed at the exact starting moment of the hook you invent for it.`
+        : 'Invent a first-frame composition consistent with the hook you invent.',
+    }
+    const chosen = cameraStyle && cameraStyle !== 'auto' && cameraStyle !== 'scene'
       ? CREATIVE_FORMATS.find(s => s.name === cameraStyle) ?? null
       : null
-    const selectedStyle = chosen ?? CREATIVE_FORMATS[Math.floor(Math.random() * CREATIVE_FORMATS.length)]
+    const selectedStyle = cameraStyle === 'scene'
+      ? sceneDerivedStyle
+      : (chosen ?? CREATIVE_FORMATS[Math.floor(Math.random() * CREATIVE_FORMATS.length)])
 
     const prompt = `Create AI Prompt.
 I want a cinematic video for my perfume brand ${productLabel} for ${gen}.

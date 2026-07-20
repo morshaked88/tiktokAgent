@@ -49,6 +49,7 @@ const END_CARDS = [
 
 const CAMERA_STYLES = [
   { value: 'auto',                 label: '🎲 Auto (random each time)' },
+  { value: 'scene',                label: '📝 Derive from My Scene Description' },
   { value: 'Splash drop',          label: '💧 Splash Drop' },
   { value: 'Fast orbit reveal',    label: '🌀 Fast Orbit Reveal' },
   { value: 'World transformation', label: '🌆 World Transformation' },
